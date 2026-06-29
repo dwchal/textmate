@@ -63,7 +63,14 @@
 {
 	__weak FileSystemObserver* weakSelf = self;
 	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-		NSArray<NSURL*>* urls = [NSFileManager.defaultManager contentsOfDirectoryAtURL:url includingPropertiesForKeys:@[ NSURLIsDirectoryKey, NSURLIsPackageKey, NSURLIsSymbolicLinkKey, NSURLIsHiddenKey, NSURLLocalizedNameKey, NSURLEffectiveIconKey ] options:0 error:nil];
+		// Note: deliberately do *not* prefetch NSURLEffectiveIconKey here. It is by far the most
+		// expensive resource value to obtain (it forces LaunchServices/QuickLook to generate an
+		// icon for every single file) and prefetching it blocks the directory listing from being
+		// delivered until all icons are generated — a major cost at launch when restored projects
+		// reload their (potentially large) folders. The icons shown in the file browser are produced
+		// by TMFileReference from a separate, normalized NSURL instance, so the values cached here
+		// would not be reused for rendering anyway.
+		NSArray<NSURL*>* urls = [NSFileManager.defaultManager contentsOfDirectoryAtURL:url includingPropertiesForKeys:@[ NSURLIsDirectoryKey, NSURLIsPackageKey, NSURLIsSymbolicLinkKey, NSURLIsHiddenKey, NSURLLocalizedNameKey ] options:0 error:nil];
 		dispatch_async(dispatch_get_main_queue(), ^{
 			[weakSelf updateFSEventsURLs:urls scmURLs:nil];
 		});
