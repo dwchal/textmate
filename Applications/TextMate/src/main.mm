@@ -1,4 +1,5 @@
 #import <oak/debug.h>
+#import <BundlesManager/BundlesManager.h>
 #import <OakSystem/application.h>
 #import <DocumentWindow/DocumentWindowController.h>
 #import <io/path.h>
@@ -50,6 +51,8 @@ int main (int argc, char const* argv[])
 {
 	oak::application_t::set_support(path::join(path::home(), "Library/Application Support/TextMate"));
 	oak::application_t app(argc, argv);
+
+	[BundlesManager preloadBundlesIndex];
 
 	increase_max_open_files();
 

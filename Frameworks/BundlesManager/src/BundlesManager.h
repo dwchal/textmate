@@ -7,6 +7,8 @@ extern NSString* const kUserDefaultsLastBundleUpdateCheckKey;
 @interface BundlesManager : NSObject
 @property (class, readonly) BundlesManager* sharedInstance;
 
++ (void)preloadBundlesIndex;
+
 @property (nonatomic, readonly) NSArray<Bundle*>* bundles;
 
 - (NSProgress*)installBundles:(NSArray<Bundle*>*)someBundles completionHandler:(void(^)(NSArray<Bundle*>*))callback;

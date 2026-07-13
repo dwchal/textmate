@@ -76,6 +76,7 @@ static NSDictionary* GlobOptionsForPath (std::string const& path, NSString* glob
 	_searching    = YES;
 	_pollInterval = 0.2;
 	_pollTimer    = [NSTimer scheduledTimerWithTimeInterval:_pollInterval target:self selector:@selector(updateMatches:) userInfo:NULL repeats:NO];
+	_pollTimer.tolerance = _pollInterval / 4;
 
 	NSUInteger searchToken = _lastSearchToken;
 	NSDate* searchStartDate = [NSDate date];
@@ -132,7 +133,10 @@ static NSDictionary* GlobOptionsForPath (std::string const& path, NSString* glob
 	}
 
 	if(_searching)
-			_pollTimer = [NSTimer scheduledTimerWithTimeInterval:_pollInterval target:self selector:@selector(updateMatches:) userInfo:NULL repeats:NO];
+	{
+		_pollTimer = [NSTimer scheduledTimerWithTimeInterval:_pollInterval target:self selector:@selector(updateMatches:) userInfo:NULL repeats:NO];
+		_pollTimer.tolerance = _pollInterval / 4;
+	}
 	else	[self stop];
 }
 

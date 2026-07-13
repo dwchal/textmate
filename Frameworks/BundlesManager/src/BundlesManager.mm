@@ -510,28 +510,61 @@ namespace
 	}
 }
 
+static std::string BundlesIndexPath ()
+{
+	return path::join(path::home(), "Library/Caches/com.macromates.TextMate/BundlesIndex.binary");
+}
+
+static plist::cache_t& PreloadedBundlesIndex ()
+{
+	static plist::cache_t cache;
+	return cache;
+}
+
+static dispatch_group_t PreloadBundlesIndexGroup ()
+{
+	static dispatch_group_t group = dispatch_group_create();
+	return group;
+}
+
+// Loading and parsing the bundles index does not require AppKit: calling
+// this early in main() lets it overlap with the rest of app launch, and
+// -loadBundlesIndex then merely waits for the result.
++ (void)preloadBundlesIndex
+{
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		dispatch_group_async(PreloadBundlesIndexGroup(), dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+			// LEGACY bundle index used prior to 2.0-alpha.9467
+			std::string const oldPath = path::join(path::home(), "Library/Caches/com.macromates.TextMate/BundlesIndex.plist");
+			if(access(oldPath.c_str(), R_OK) == 0)
+			{
+				PreloadedBundlesIndex().load(oldPath);
+				PreloadedBundlesIndex().save_capnp(BundlesIndexPath());
+				unlink(oldPath.c_str());
+			}
+			else
+			{
+				PreloadedBundlesIndex().load_capnp(BundlesIndexPath());
+			}
+		});
+	});
+}
+
 - (void)loadBundlesIndex
 {
+	[BundlesManager preloadBundlesIndex];
+
 	// LEGACY locations used by 2.0-beta.12.22 and earlier
 	[self moveAvianBundles];
 
 	for(auto path : bundles::locations())
 		bundlesPaths.push_back(path::join(path, "Bundles"));
-	bundlesIndexPath = path::join(path::home(), "Library/Caches/com.macromates.TextMate/BundlesIndex.binary");
-	cache.set_content_filter(&prune_dictionary);
+	bundlesIndexPath = BundlesIndexPath();
 
-	// LEGACY bundle index used prior to 2.0-alpha.9467
-	std::string const oldPath = path::join(path::home(), "Library/Caches/com.macromates.TextMate/BundlesIndex.plist");
-	if(access(oldPath.c_str(), R_OK) == 0)
-	{
-		cache.load(oldPath);
-		cache.save_capnp(bundlesIndexPath);
-		unlink(oldPath.c_str());
-	}
-	else
-	{
-		cache.load_capnp(bundlesIndexPath);
-	}
+	dispatch_group_wait(PreloadBundlesIndexGroup(), DISPATCH_TIME_FOREVER);
+	cache = std::move(PreloadedBundlesIndex());
+	cache.set_content_filter(&prune_dictionary);
 
 	_needsCreateBundlesIndex = YES;
 	[self createBundlesIndex:self];

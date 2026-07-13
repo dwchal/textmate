@@ -153,6 +153,7 @@ namespace scm
 	{
 		[_updateTimer invalidate];
 		_updateTimer = [NSTimer scheduledTimerWithTimeInterval:delayUpdate target:self selector:@selector(updateStatusInBackground:) userInfo:nil repeats:NO];
+		_updateTimer.tolerance = delayUpdate / 4;
 	}
 	else
 	{
