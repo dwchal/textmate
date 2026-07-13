@@ -682,7 +682,8 @@ NSString* const kSoftwareUpdateChannelCanary                                   =
 	{
 		[self checkProgressTimerDidFire:nil];
 
-		_checkProgressTimer = [NSTimer scheduledTimerWithTimeInterval:0.04 target:self selector:@selector(checkProgressTimerDidFire:) userInfo:nil repeats:YES];
+		_checkProgressTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(checkProgressTimerDidFire:) userInfo:nil repeats:YES];
+		_checkProgressTimer.tolerance = 0.025;
 		[self checkProgressTimerDidFire:_checkProgressTimer];
 	}
 	else

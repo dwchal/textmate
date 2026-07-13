@@ -107,7 +107,10 @@ static NSMutableSet<OakCommandRefresher*>* CommandRefreshers = [NSMutableSet set
 
 	[_idleTimer invalidate];
 	if(flag)
-			_idleTimer = [NSTimer scheduledTimerWithTimeInterval:kDocumentIdleDelay target:self selector:@selector(idleTimerDidFire:) userInfo:nil repeats:NO];
+	{
+		_idleTimer = [NSTimer scheduledTimerWithTimeInterval:kDocumentIdleDelay target:self selector:@selector(idleTimerDidFire:) userInfo:nil repeats:NO];
+		_idleTimer.tolerance = kDocumentIdleDelay / 10;
+	}
 	else	[self idleTimerDidFire:nil];
 }
 

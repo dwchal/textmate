@@ -529,6 +529,7 @@ static NSDictionary* globs_for_path (std::string const& path)
 
 	_pollInterval = 0.02;
 	_pollTimer = [NSTimer scheduledTimerWithTimeInterval:_pollInterval target:self selector:@selector(handleSearchResults:) userInfo:nil repeats:NO];
+	_pollTimer.tolerance = _pollInterval / 4;
 	[_progressIndicator performSelector:@selector(startAnimation:) withObject:self afterDelay:0.2];
 }
 
@@ -545,6 +546,7 @@ static NSDictionary* globs_for_path (std::string const& path)
 	{
 		_pollInterval = std::min(_pollInterval * 2, 0.32);
 		_pollTimer = [NSTimer scheduledTimerWithTimeInterval:_pollInterval target:self selector:@selector(handleSearchResults:) userInfo:nil repeats:NO];
+		_pollTimer.tolerance = _pollInterval / 4;
 	}
 	else
 	{

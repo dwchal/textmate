@@ -573,6 +573,7 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 
 	[_backupTimer invalidate];
 	_backupTimer = _keepBackupFile ? [NSTimer scheduledTimerWithTimeInterval:kDocumentBackupDelay target:self selector:@selector(backupTimerDidFire:) userInfo:nil repeats:NO] : nil;
+	_backupTimer.tolerance = kDocumentBackupDelay / 4;
 
 	[NSNotificationCenter.defaultCenter postNotificationName:OakDocumentContentDidChangeNotification object:self];
 }

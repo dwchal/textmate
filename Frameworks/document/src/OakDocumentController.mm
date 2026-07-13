@@ -305,6 +305,7 @@ namespace
 
 	[_saveRankedPathsTimer invalidate];
 	_saveRankedPathsTimer = [NSTimer scheduledTimerWithTimeInterval:2 target:self selector:@selector(saveRankedPathsTimerDidFire:) userInfo:nil repeats:NO];
+	_saveRankedPathsTimer.tolerance = 0.5;
 }
 
 // ======================

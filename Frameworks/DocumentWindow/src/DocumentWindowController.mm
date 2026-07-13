@@ -2441,6 +2441,7 @@ static NSTouchBarItemIdentifier kTouchBarFavoritesItemIdentifier = @"com.macroma
 	static NSTimer* saveTimer;
 	[saveTimer invalidate];
 	saveTimer = [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector(backupSessionFiredTimer:) userInfo:nil repeats:NO];
+	saveTimer.tolerance = 0.1;
 }
 
 + (NSString*)sessionPath

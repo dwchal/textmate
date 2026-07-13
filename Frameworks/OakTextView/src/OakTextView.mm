@@ -3160,6 +3160,7 @@ static char const* kOakMenuItemTitle = "OakMenuItemTitle";
 {
 	[blinkCaretTimer invalidate];
 	blinkCaretTimer = aValue;
+	blinkCaretTimer.tolerance = blinkCaretTimer.timeInterval / 10;
 }
 
 - (void)resetBlinkCaretTimer
