@@ -23,6 +23,10 @@ else
 	for lib in capnp kj; do
 		test -f "/usr/local/lib/lib${lib}."* || error "*** dependency missing: ‘/usr/local/lib/lib${lib}.*’. Install dependency and/or update ‘local.rave’ with correct path."
 	done
+
+	# Link Cap’n Proto statically when possible so TextMate.app has no Homebrew/MacPorts runtime dependency
+	test -f /usr/local/lib/libcapnp.a && echo >> local.rave 'set CAPNP_LIB "/usr/local/lib/libcapnp.a"'
+	test -f /usr/local/lib/libkj.a    && echo >> local.rave 'set KJ_LIB    "/usr/local/lib/libkj.a"'
 fi
 
 # ========================

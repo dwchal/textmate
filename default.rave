@@ -22,6 +22,10 @@ add AC_FLAGS      "--minimum-deployment-target=${APP_MIN_OS} --platform=macosx"
 
 set CS_FLAGS      "--force --options runtime"
 
+# Cap’n Proto libraries; local.rave may point these at static .a files
+set CAPNP_LIB     "capnp"
+set KJ_LIB        "kj"
+
 set PLIST_FLAGS   "-dTARGET_NAME='${target}' -dAPP_MIN_OS='${APP_MIN_OS}'"
 
 prelude Shared/PCH/prelude.*

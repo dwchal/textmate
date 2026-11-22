@@ -3,6 +3,6 @@ target "${dirname}" {
 	headers src/*.h
 	sources src/*.{cc,rl,capnp}
 	tests tests/*.cc
-	libraries capnp kj
+	libraries ${CAPNP_LIB} ${KJ_LIB}
 	frameworks CoreFoundation
 }
