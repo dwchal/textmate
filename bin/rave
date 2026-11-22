@@ -1310,6 +1310,87 @@ module Target
     target[:build][:notarize]
   end
 
+  # Unit tests and benchmarks: `ninja <target>/test`, `<target>/bench`, `test`
+  def tests(archs, targets)
+    target = archs.values.first
+
+    unless target[:build].include?(:tests)
+      res, rules = nil, []
+
+      if (test_files = target[:tests]) && !test_files.empty?
+        builddir  = File.join(target[:builddir], '_Test', target[:name])
+        objc      = test_files.any? { |file| file.end_with?('.mm', '.m') }
+        generated = File.join(builddir, "tests_#{target[:name]}.#{objc ? 'mm' : 'cc'}")
+
+        rules << {
+          name:         'GenerateTests',
+          in:           test_files.sort,
+          out:          generated,
+          command:      '/usr/bin/env ruby -W0 bin/gen_test $in > $out~ && mv $out~ $out',
+          dependencies: [ 'bin/gen_test' ],
+          description:  'Generate ‘$out’…',
+        }
+
+        required = required_targets(target, targets, include_self: true).map { |archs| archs[target[:arch]] }.reject(&:nil?)
+        include_dirs = required_targets(target, targets, include_self: true, include_weak: true).map { |archs| include_dir(archs) }.reject(&:nil?)
+        config = target[:variables].merge(prelude: target[:prelude], inference: target[:inference], include: include_dirs.sort.uniq)
+
+        links = Compiler.transform(generated, config, target[:builddir])
+        rules += links
+        test_object = links.last[:out]
+
+        objects    = required.flat_map { |t| objects(t, targets) }
+        frameworks = required.flat_map { |t| t[:frameworks] }.reject(&:nil?)
+        frameworks += [ 'Foundation', 'AppKit' ] if objc
+        libraries  = required.flat_map { |t| t[:libraries] }.reject(&:nil?).sort.uniq
+        static, libraries = libraries.partition { |lib| lib =~ /\.a$/ }
+
+        ln_flags = required.flat_map { |t| t[:variables].include?('LN_FLAGS') ? t[:variables]['LN_FLAGS'].split(' ') : [] }.uniq
+        ln_flags += frameworks.sort.uniq.map { |e| "-framework #{e.shellescape}" }
+        ln_flags += libraries.map { |e| "-l#{e.shellescape}" }
+        ln_flags += static
+        ln_flags << '-Wl,-sectcreate,__TEXT,__info_plist,bin/test_info.plist' # gives NSBundle.mainBundle an identifier
+
+        executable = File.join(builddir, "test_#{target[:name]}")
+        rules << {
+          name:         'Link',
+          in:           ([ test_object ] + objects).uniq,
+          out:          executable,
+          flags:        ln_flags.join(' '),
+          command:      'xcrun --sdk macosx clang -o $out $flags $in',
+          description:  'Link ‘${out}’…',
+          dependencies: [ 'bin/test_info.plist' ],
+        }
+
+        rules << {
+          name:        'RunTests',
+          in:          executable,
+          out:         executable + '.passed',
+          command:     '$in && touch $out',
+          description: 'Test ‘$in’…',
+        }
+        rules << { name: 'phony', in: executable + '.passed', out: target[:identifier] + '/test' }
+
+        rules << {
+          name:        'RunBenchmarks',
+          in:          executable,
+          out:         executable + '.always-run-bench',
+          command:     '$in -b -m',
+          description: 'Benchmark ‘$in’…',
+          pool:        'console',
+        }
+        rules << { name: 'phony', in: executable + '.always-run-bench', out: target[:identifier] + '/bench' }
+
+        res = executable + '.passed'
+      end
+
+      target[:build][:rules] += rules
+      target[:build][:tests]  = res
+    end
+
+    target[:build][:tests]
+  end
+
   def defines(archs, targets)
     target = archs.values.first
 
@@ -1519,12 +1600,18 @@ if __FILE__ == $PROGRAM_NAME
     Target.runner(archs, targets)
     Target.signature(archs, targets)
     Target.defines(archs, targets)
+    Target.tests(archs, targets)
   end
 
   rules = targets.flat_map do |_, archs|
     archs.flat_map do |_, target|
       target[:build][:rules].reject { |rule| rule[:duplicate] }
     end
+  end
+
+  test_outputs = targets.flat_map { |_, archs| archs.values.map { |t| [ t[:variables]['config'], t[:build][:tests] ] } }.reject { |_, out| out.nil? }
+  test_outputs.group_by(&:first).each do |config, list|
+    rules << { name: 'phony', in: list.map(&:last).uniq, out: config ? "test/#{config}" : 'test' }
   end
 
   if default_config
