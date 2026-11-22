@@ -9,7 +9,8 @@
 // (~/Library/Application Support/TextMate/Managed/Bundles), on inputs built
 // from this repository’s own sources. Run with: ninja parse/bench
 
-static std::string const kRepoRoot = path::parent(path::parent(path::parent(path::parent(__FILE__))));
+// Set TM_BENCH_CORPUS to a frozen copy of the repository to compare digests across source changes.
+static std::string const kRepoRoot = getenv("TM_BENCH_CORPUS") ?: path::parent(path::parent(path::parent(path::parent(__FILE__))));
 
 static std::map<std::string, bundles::item_ptr>& grammars ()
 {
@@ -78,7 +79,7 @@ static void parse_all (std::string const& scopeName, std::string const& buf)
 
 	auto grammar = parse::parse_grammar(it->second);
 	parse::stack_ptr state = grammar->seed();
-	size_t lines = 0, scopeChanges = 0;
+	size_t lines = 0, scopeChanges = 0, digest = 14695981039346656037ULL; // FNV-1a over (offset, scope)
 	for(std::string::size_type i = 0; i != buf.size(); ++lines)
 	{
 		auto eol = buf.find('\n', i);
@@ -86,10 +87,15 @@ static void parse_all (std::string const& scopeName, std::string const& buf)
 		std::map<size_t, scope::scope_t> scopes;
 		state = parse::parse(buf.data() + i, buf.data() + eol, state, scopes, i == 0);
 		scopeChanges += scopes.size();
+		for(auto const& pair : scopes)
+		{
+			for(unsigned char c : std::to_string(i + pair.first) + "\t" + to_s(pair.second) + "\n")
+				digest = (digest ^ c) * 1099511628211ULL;
+		}
 		i = eol;
 	}
 	OAK_ASSERT_GT(scopeChanges, lines / 4); // sanity: the grammar actually did something
-	fprintf(stderr, "%s: %zu bytes, %zu lines, %zu scope changes\n", scopeName.c_str(), buf.size(), lines, scopeChanges);
+	fprintf(stderr, "%s: %zu bytes, %zu lines, %zu scope changes, digest %016zx\n", scopeName.c_str(), buf.size(), lines, scopeChanges, digest);
 }
 
 void benchmark_parse_cxx_4mb ()

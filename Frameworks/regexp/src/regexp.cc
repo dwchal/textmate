@@ -131,10 +131,23 @@ namespace regexp
 			char const* gpos = (options & ONIG_OPTION_NOTGPOS) ? nullptr : (from ?: first);
 			options &= ~ONIG_OPTION_NOTGPOS;
 
-			struct helper_t { static void region_free (OnigRegion* r) { onig_region_free(r, 1); } };
-			regexp::region_ptr region(onig_region_new(), &helper_t::region_free);
-			if(ONIG_MISMATCH != onig_search_gpos(ptrn.get().get(), (OnigUChar const*)first, (OnigUChar const*)last, (OnigUChar*)gpos, (OnigUChar const*)(from ?: first), (OnigUChar const*)(to ?: last), region.get(), options))
+			// Search into a per-thread scratch region so the (very common) failed
+			// searches don’t allocate; copy it out only when we have a match.
+			struct scratch_t
+			{
+				scratch_t ()  { onig_region_init(&region); }
+				~scratch_t () { onig_region_free(&region, 0); }
+				OnigRegion region;
+			};
+			static thread_local scratch_t scratch;
+
+			if(ONIG_MISMATCH != onig_search_gpos(ptrn.get().get(), (OnigUChar const*)first, (OnigUChar const*)last, (OnigUChar*)gpos, (OnigUChar const*)(from ?: first), (OnigUChar const*)(to ?: last), &scratch.region, options))
+			{
+				struct helper_t { static void region_free (OnigRegion* r) { onig_region_free(r, 1); } };
+				regexp::region_ptr region(onig_region_new(), &helper_t::region_free);
+				onig_region_copy(region.get(), &scratch.region);
 				return match_t(region, ptrn.get(), first);
+			}
 		}
 		return match_t();
 	}
