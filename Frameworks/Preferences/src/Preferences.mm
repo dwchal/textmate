@@ -3,7 +3,6 @@
 #import "ProjectsPreferences.h"
 #import "BundlesPreferences.h"
 #import "VariablesPreferences.h"
-#import "SoftwareUpdatePreferences.h"
 #import "TerminalPreferences.h"
 #import "Keys.h"
 #import <OakAppKit/OakTransitionViewController.h>
@@ -23,7 +22,9 @@ static NSString* const kMASPreferencesSelectedViewKey = @"MASPreferences Selecte
 - (void)viewWillAppear
 {
 	NSString* viewIdentifier = [NSUserDefaults.standardUserDefaults stringForKey:kMASPreferencesSelectedViewKey];
-	self.selectedViewIdentifier = viewIdentifier ?: self.childViewControllers.firstObject.identifier;
+	if(![self viewControllerForIdentifier:viewIdentifier]) // e.g. a pane that has since been removed
+		viewIdentifier = self.childViewControllers.firstObject.identifier;
+	self.selectedViewIdentifier = viewIdentifier;
 }
 
 - (void)setSelectedViewIdentifier:(NSString*)viewIdentifier
@@ -97,7 +98,6 @@ static NSString* const kMASPreferencesSelectedViewKey = @"MASPreferences Selecte
 			[[ProjectsPreferences alloc] init],
 			[[BundlesPreferences alloc] init],
 			[[VariablesPreferences alloc] init],
-			[[SoftwareUpdatePreferences alloc] init],
 			[[TerminalPreferences alloc] init]
 		];
 

@@ -18,5 +18,7 @@ This is a fork of TextMate maintained by DC Productions, built from <https://git
 * **Faster app launch** — the bundles index cache is now loaded on a background queue starting at process launch, instead of synchronously on the main thread during `applicationWillFinishLaunching:`, so it overlaps with AppKit start-up rather than adding to it.
 * **Faster file browser** — directory listings no longer prefetch `NSURLEffectiveIconKey` for every entry. That value is the most expensive one to compute (it invokes LaunchServices/QuickLook per file) and was never actually used for rendering file browser icons, so dropping it speeds up opening and restoring projects with large folder trees.
 * **Lower energy use** — timers throughout the app (caret blink, autosave, SCM status polling, and others) now declare a tolerance so macOS can coalesce their wake-ups instead of waking the CPU for each one individually, per Apple's Energy Efficiency Guide.
+* **No update checks** — TextMate's built-in software update (the hourly background check, the “Check for Update” menu item, and the Software Update preferences pane) is removed. Upstream updates would replace this fork with the official build; update by rebuilding from the fork instead.
+* **Rust scope selectors** — the scope selector parser and matcher (used for theming, bundle items, and settings) are implemented in Rust (`Frameworks/scope/rust`), verified bit-for-bit against the original C++.
 
 See the Changes tab for upstream TextMate release notes.
