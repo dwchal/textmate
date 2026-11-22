@@ -1,0 +1,56 @@
+#!/bin/bash
+# Markdown preview for TextMate (replaces the Ruby 1.8 “Show Preview” command).
+#
+# Reads the document on stdin, writes an HTML page on stdout. The converter
+# chain is the same as the Markdown bundle’s: TM_MARKDOWN_PRE_FILTER (colon
+# separated) | ${TM_MARKDOWN:-Markdown.pl} | TM_MARKDOWN_POST_FILTER.
+
+here="${BASH_SOURCE[0]%/*}"
+
+html_escape () { local s=${1//&/&amp;}; s=${s//</&lt;}; s=${s//>/&gt;}; s=${s//\"/&quot;}; printf '%s' "$s"; }
+url_escape ()  { printf '%s' "$1" | /usr/bin/perl -pe 's/([^A-Za-z0-9\/._~-])/sprintf("%%%02X", ord $1)/ge'; }
+
+converter_chain () {
+	local chain=() filter IFS=:
+	for filter in ${TM_MARKDOWN_PRE_FILTER:-}; do [[ -n $filter ]] && chain+=("$filter"); done
+	if [[ -n ${TM_MARKDOWN+set} ]]; then
+		chain+=('$TM_MARKDOWN')
+	else
+		chain+=('/usr/bin/perl "$TM_SUPPORT_PATH/bin/Markdown.pl"')
+	fi
+	for filter in ${TM_MARKDOWN_POST_FILTER:-}; do [[ -n $filter ]] && chain+=("$filter"); done
+	local IFS='|'
+	printf '%s' "${chain[*]}"
+}
+
+# Like the original command: run the converter from the project directory so
+# e.g. TM_MARKDOWN="bundle exec redcarpet" picks up the project’s Gemfile.
+[[ -d $TM_PROJECT_DIRECTORY ]] && cd "$TM_PROJECT_DIRECTORY"
+
+source=$(cat; printf x); source=${source%x}
+
+errors=$(mktemp -t tm_markdown_preview) && trap 'rm -f "$errors"' EXIT
+set -o pipefail
+if ! body=$(printf '%s' "$source" | eval "$(converter_chain)" 2>"$errors"); then
+	body="<p><b>Markdown conversion failed:</b> <code>$(html_escape "$(converter_chain)")</code></p><pre>$(html_escape "$(cat "$errors")")</pre>"
+fi
+
+title=$(html_escape "${TM_FILENAME:-untitled}")
+
+cat <<HTML
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>${title}</title>
+HTML
+[[ -f $TM_FILEPATH ]] && printf "<base href='file://%s'>\n" "$(url_escape "$TM_FILEPATH")"
+printf '<style>\n'; cat "$here/preview.css"; printf '</style>\n'
+cat <<HTML
+</head>
+<body>
+${body}
+</body>
+</html>
+HTML

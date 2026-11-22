@@ -1,0 +1,73 @@
+:root {
+	color-scheme: light dark;
+	--fg: #1f2328;
+	--fg-muted: #59636e;
+	--bg: #ffffff;
+	--bg-subtle: #f6f8fa;
+	--border: #d1d9e0;
+	--link: #0969da;
+	--mark: #fff8c5;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--fg: #e6edf3;
+		--fg-muted: #9198a1;
+		--bg: #1e1f22;
+		--bg-subtle: #2a2c30;
+		--border: #3d444d;
+		--link: #4493f8;
+		--mark: #4d4214;
+	}
+}
+
+html { background: var(--bg); }
+
+body {
+	margin: 0 auto;
+	padding: 24px 32px 48px;
+	max-width: 880px;
+	color: var(--fg);
+	background: var(--bg);
+	font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+	word-wrap: break-word;
+}
+
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1, h2, h3, h4, h5, h6 { margin: 1.5em 0 0.6em; line-height: 1.25; font-weight: 600; }
+h1 { font-size: 2em;    padding-bottom: 0.3em; border-bottom: 1px solid var(--border); }
+h2 { font-size: 1.5em;  padding-bottom: 0.3em; border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.25em; }
+h6 { color: var(--fg-muted); }
+body > :first-child { margin-top: 0; }
+
+p, ul, ol, dl, table, pre, blockquote, figure { margin: 0 0 1em; }
+ul, ol { padding-left: 2em; }
+li + li { margin-top: 0.25em; }
+
+blockquote { padding: 0 1em; color: var(--fg-muted); border-left: 0.25em solid var(--border); }
+hr { height: 0.25em; margin: 1.5em 0; border: 0; background: var(--border); }
+mark { background: var(--mark); color: inherit; }
+img { max-width: 100%; }
+
+code, kbd, pre, tt { font: 85%/1.45 ui-monospace, "SF Mono", Menlo, monospace; }
+code { padding: 0.2em 0.4em; border-radius: 6px; background: var(--bg-subtle); }
+pre { padding: 16px; overflow: auto; border-radius: 6px; background: var(--bg-subtle); }
+pre code { padding: 0; font-size: 100%; background: none; }
+
+table { display: block; width: max-content; max-width: 100%; overflow: auto; border-collapse: collapse; }
+th, td { padding: 6px 13px; border: 1px solid var(--border); }
+th { font-weight: 600; }
+tr:nth-child(2n) { background: var(--bg-subtle); }
+
+.mermaid { margin: 0 0 1em; text-align: center; background: none; }
+.mermaid svg { max-width: 100%; height: auto; }
+
+#tm-caret-marker { position: absolute; left: 0; width: 3px; height: 1.6em; background: var(--link); opacity: 0.6; border-radius: 2px; pointer-events: none; }
+
+@media print {
+	body { max-width: none; padding: 0; }
+	#tm-caret-marker { display: none; }
+}

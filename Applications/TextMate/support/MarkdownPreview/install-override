@@ -1,0 +1,56 @@
+#!/bin/bash
+# Points the Markdown bundle’s “Show Preview” command (⌃⌥⌘P) at the Ruby-free
+# preview shipped in TextMate.app/Contents/SharedSupport/MarkdownPreview.
+#
+# This writes a delta in ~/Library/Application Support/TextMate/Bundles (the
+# same mechanism TextMate uses when you edit a bundle item yourself), so bundle
+# updates don’t undo it. Remove that Markdown.tmbundle folder to revert.
+set -e
+
+dest="$HOME/Library/Application Support/TextMate/Bundles/Markdown.tmbundle"
+mkdir -p "$dest/Commands"
+
+if [[ -e $dest/info.plist ]] && ! /usr/bin/plutil -extract isDelta raw "$dest/info.plist" 2>/dev/null | grep -q true; then
+	echo "$dest exists and is not a delta bundle; not touching it." >&2
+	exit 1
+fi
+
+[[ -e $dest/info.plist ]] || cat > "$dest/info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>isDelta</key>
+	<true/>
+	<key>uuid</key>
+	<string>D99E8C0C-792F-11D9-A212-000D93B3A10E</string>
+</dict>
+</plist>
+PLIST
+
+cat > "$dest/Commands/Markdown preview.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>changed</key>
+	<dict>
+		<key>command</key>
+		<string>#!/bin/bash
+preview="$TM_APP_PATH/Contents/SharedSupport/MarkdownPreview/preview"
+if [[ ! -x $preview ]]; then
+	echo "&lt;p&gt;This copy of TextMate has no built-in Markdown preview ($preview).&lt;/p&gt;"
+	exit 0
+fi
+exec "$preview"
+</string>
+	</dict>
+	<key>isDelta</key>
+	<true/>
+	<key>uuid</key>
+	<string>B52DEA16-8480-11D9-BE59-000D93B3A10E</string>
+</dict>
+</plist>
+PLIST
+
+echo "Installed: $dest"
