@@ -1,6 +1,6 @@
 target "${dirname}" {
 	require text
 	headers src/scope.h
-	sources src/*.cc
+	sources src/*.cc rust/Cargo.toml
 	tests tests/*.cc
 }

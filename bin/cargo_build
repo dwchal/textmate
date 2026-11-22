@@ -1,0 +1,27 @@
+#!/bin/sh
+# Build a Rust staticlib for rave/ninja and write a ninja-compatible depfile.
+# Usage: cargo_build <Cargo.toml> <out.a> <target-dir> <rust-target-triple|host>
+set -e
+manifest="$1" out="$2" target_dir="$3" triple="$4"
+
+cargo="${CARGO:-$(command -v cargo || true)}"
+[ -n "$cargo" ] || cargo="$HOME/.cargo/bin/cargo"
+if [ ! -x "$cargo" ]; then
+	echo "cargo not found: install Rust from https://rustup.rs (or set CARGO)" >&2
+	exit 1
+fi
+
+name=$(sed -n 's/^name *= *"\(.*\)"/\1/p' "$manifest" | head -n1)
+if [ "$triple" = host ]; then
+	"$cargo" build --quiet --release --manifest-path "$manifest" --target-dir "$target_dir"
+	built="$target_dir/release"
+else
+	"$cargo" build --quiet --release --manifest-path "$manifest" --target-dir "$target_dir" --target "$triple"
+	built="$target_dir/$triple/release"
+fi
+
+mkdir -p "$(dirname "$out")"
+cp "$built/lib$name.a" "$out"
+
+# Cargo's depfile names its own artifact; retarget it at our output.
+sed "1s|^[^:]*:|$(printf '%s' "$out" | sed 's/[ |&]/\\&/g'):|" "$built/lib$name.d" > "$out.d"

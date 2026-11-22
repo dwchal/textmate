@@ -1,0 +1,15 @@
+[package]
+name = "scope_rs"
+version = "0.1.0"
+edition = "2021"
+description = "TextMate scope selector parser and matcher (Rust port of Frameworks/scope parse/match/types)"
+publish = false
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+panic = "abort"
+debug = false

@@ -57,6 +57,7 @@ namespace scope
 
 		private:
 			friend scope_t;
+			friend struct scope::types::selector_t;
 			friend scope_t shared_prefix (scope_t const& lhs, scope_t const& rhs);
 			std::string _atoms;
 			node_t* _parent;
@@ -67,7 +68,7 @@ namespace scope
 		explicit scope_t (node_t* node);
 		void setup (std::string const& str);
 		void to_s_helper (scope_t::node_t* n, std::string& out) const;
-		friend struct scope::types::path_t;
+		friend struct scope::types::selector_t;
 		friend scope_t shared_prefix (scope_t const& lhs, scope_t const& rhs);
 		node_t* node = nullptr;
 	};

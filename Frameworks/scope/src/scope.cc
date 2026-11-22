@@ -1,5 +1,4 @@
 #include "scope.h"
-#include "parse.h"
 #include <text/format.h>
 #include <text/parse.h>
 #include <text/tokenize.h>
@@ -242,36 +241,5 @@ namespace scope
 	std::string to_s (context_t const& c)
 	{
 		return c.left == c.right ? to_s(c.left) : to_s(c.left) + "\037" + to_s(c.right);
-	}
-
-	// ============
-	// = Selector =
-	// ============
-
-	selector_t::selector_t ()                        { ; }
-	selector_t::selector_t (char const* str)         { setup(str); }
-	selector_t::selector_t (std::string const& str)  { setup(str); }
-
-	void selector_t::setup (std::string const& str)
-	{
-		selector = std::make_shared<scope::types::selector_t>();
-		scope::parse::selector(str.data(), str.data() + str.size(), *selector);
-	}
-
-	std::string to_s (selector_t const& s)
-	{
-		return s.selector ? to_s(*s.selector) : "";
-	}
-
-	// ============
-	// = Matching =
-	// ============
-
-	std::optional<double> selector_t::does_match (context_t const& scope) const
-	{
-		double rank = 1;
-		if(selector)
-			return scope.left == wildcard || scope.right == wildcard || selector->does_match(scope.left, scope.right, &rank) ? rank : std::optional<double>();
-		return 0;
 	}
 }
