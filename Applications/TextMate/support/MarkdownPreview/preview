@@ -37,6 +37,49 @@ fi
 
 title=$(html_escape "${TM_FILENAME:-untitled}")
 
+# Where is the caret, relative to the document’s headings? Prints “k start end”:
+# the caret is in the section after the k-th heading (0 = before the first),
+# which spans source lines [start, end). The page maps this onto the rendered
+# headings, so the preview follows the caret as you type.
+caret_section () {
+	printf '%s' "$source" | /usr/bin/awk -v caret="$1" '
+		function heading(n) { if(n <= caret) { k++; start = n } else if(!end) end = n }
+		BEGIN { k = 0; start = 1; end = 0 }
+		/^ {0,3}(```|~~~)/ { fence = !fence; prev = ""; next }
+		fence              { next }
+		/^ {0,3}#{1,6}([ \t]|$)/        { heading(NR); prev = ""; next }
+		/^ {0,3}(=+|-+)[ \t]*$/ && prev != "" && prev !~ /^ {0,3}([-*+]|[0-9]+[.)])[ \t]/ { heading(NR - 1); prev = ""; next }
+		{ prev = $0 ~ /^[ \t]*$/ ? "" : $0 }
+		END { printf "%d %d %d", k, start, end ? end : NR + 1 }'
+}
+
+caret_script=
+if [[ $TM_LINE_NUMBER =~ ^[0-9]+$ ]]; then
+	read -r section start end < <(caret_section "$TM_LINE_NUMBER")
+	caret_script="<meta name=\"textmate-scroll\" content=\"manual\">
+<script>var TMCaret = { line: $TM_LINE_NUMBER, section: $section, start: $start, end: $end };</script>"
+fi
+
+# Mermaid diagrams (```mermaid fences). Mermaid is ~2.5 MB, so it is fetched
+# once on first use, checked against a pinned hash, and cached.
+mermaid_version=11.4.1
+mermaid_sha256=a43bc1afd446f9c4cc66ac5dd45d02e8d65e26fc5344ec0ef787f88d6ddb6f9e
+mermaid_js="$HOME/Library/Caches/com.macromates.TextMate/mermaid-$mermaid_version.min.js"
+mermaid_script=
+if [[ $body == *'<code class="mermaid"'* || $body == *'<code class="language-mermaid"'* ]]; then
+	if [[ ! -f $mermaid_js ]]; then
+		mkdir -p "${mermaid_js%/*}"
+		tmp="$mermaid_js.$$"
+		if /usr/bin/curl -fsSL --max-time 20 -o "$tmp" "https://cdn.jsdelivr.net/npm/mermaid@$mermaid_version/dist/mermaid.min.js" \
+			&& [[ $(/usr/bin/shasum -a 256 "$tmp") == "$mermaid_sha256 "* ]]; then
+			mv "$tmp" "$mermaid_js"
+		else
+			rm -f "$tmp"
+		fi
+	fi
+	[[ -f $mermaid_js ]] && mermaid_script="<script src='file://$(url_escape "$mermaid_js")'></script>"
+fi
+
 cat <<HTML
 <!DOCTYPE html>
 <html>
@@ -48,9 +91,16 @@ HTML
 [[ -f $TM_FILEPATH ]] && printf "<base href='file://%s'>\n" "$(url_escape "$TM_FILEPATH")"
 printf '<style>\n'; cat "$here/preview.css"; printf '</style>\n'
 cat <<HTML
+${caret_script}
+${mermaid_script}
 </head>
 <body>
 ${body}
+<script>
+HTML
+cat "$here/preview.js"
+cat <<HTML
+</script>
 </body>
 </html>
 HTML

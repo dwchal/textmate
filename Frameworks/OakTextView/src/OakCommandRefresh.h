@@ -14,4 +14,6 @@ typedef NS_OPTIONS(NSUInteger, OakCommandRefresherOptions) {
 - (void)bringHTMLOutputToFront:(id)sender;
 - (void)teardown;
 @property (nonatomic, readonly) OakCommand* command;
+// Called before each refresh; returns fresh caret variables (TM_LINE_NUMBER, …) or an empty map if unavailable.
+@property (nonatomic, copy) std::map<std::string, std::string>(^caretVariablesProvider)();
 @end

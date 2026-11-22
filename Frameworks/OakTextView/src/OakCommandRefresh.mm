@@ -191,6 +191,23 @@ static NSMutableSet<OakCommandRefresher*>* CommandRefreshers = [NSMutableSet set
 
 		stdinFH = [[NSFileHandle alloc] initWithFileDescriptor:stdinRead closeOnDealloc:YES];
 	}
+	if(_caretVariablesProvider)
+	{
+		// The caret has likely moved since the command first ran (e.g. a preview
+		// that follows the caret), so replace the caret-derived variables.
+		static char const* const kCaretVariables[] = { "TM_LINE_NUMBER", "TM_LINE_INDEX", "TM_COLUMN_NUMBER", "TM_CURRENT_LINE", "TM_CURRENT_WORD", "TM_SCOPE", "TM_SCOPE_LEFT" };
+		std::map<std::string, std::string> const caret = _caretVariablesProvider();
+		if(!caret.empty())
+		{
+			for(char const* key : kCaretVariables)
+			{
+				auto it = caret.find(key);
+				if(it != caret.end())
+						_variables[key] = it->second;
+				else	_variables.erase(key);
+			}
+		}
+	}
 	[_command executeWithInput:stdinFH variables:_variables outputHandler:nil];
 }
 @end

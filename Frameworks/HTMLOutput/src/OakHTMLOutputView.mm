@@ -169,7 +169,9 @@
 		}
 	}
 
-	if(!NSIsEmptyRect(self.pendingVisibleRect))
+	// Pages that position themselves (e.g. a preview that follows the caret) opt out with <meta name="textmate-scroll" content="manual">
+	BOOL pageScrollsItself = [[[self.webView mainFrame] DOMDocument] querySelector:@"meta[name='textmate-scroll'][content='manual']"] != nil;
+	if(!NSIsEmptyRect(self.pendingVisibleRect) && !pageScrollsItself)
 		[[[[self.webView mainFrame] frameView] documentView] scrollRectToVisible:self.pendingVisibleRect];
 	self.pendingVisibleRect = NSZeroRect;
 

@@ -4565,7 +4565,15 @@ static scope::context_t add_modifiers_to_scope (scope::context_t scope, NSUInteg
 				options |= OakCommandRefresherDocumentDidClose;
 			if(aBundleCommand.input == input::entire_document)
 				options |= OakCommandRefresherDocumentAsInput;
-			[OakCommandRefresher scheduleRefreshForCommand:command document:_document window:self.window options:options variables:variables];
+			OakCommandRefresher* refresher = [OakCommandRefresher scheduleRefreshForCommand:command document:_document window:self.window options:options variables:variables];
+			__weak OakTextView* weakSelf = self;
+			OakDocument* refreshDocument = _document;
+			refresher.caretVariablesProvider = ^std::map<std::string, std::string>(){
+				OakTextView* textView = weakSelf;
+				if(!textView || textView.document != refreshDocument || !textView->documentView)
+					return { };
+				return textView->documentView->variables(to_s([textView scopeAttributes]));
+			};
 		}
 	};
 
