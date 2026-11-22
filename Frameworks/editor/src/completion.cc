@@ -114,6 +114,16 @@ namespace ng
 			}
 		}
 
+		// ==================================
+		// = Language Server (if attached) =
+		// ==================================
+
+		if(_delegate && !prefix.empty())
+		{
+			std::vector<std::string> serverResult = _delegate->language_server_completions(_buffer.convert(bow + prefix.size()), prefix);
+			commandResult.insert(commandResult.begin(), serverResult.begin(), serverResult.end());
+		}
+
 		if(commandResult.empty() && prefix.empty() && suffix.empty())
 			return { };
 

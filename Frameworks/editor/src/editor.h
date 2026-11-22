@@ -157,6 +157,8 @@ namespace ng
 	{
 		virtual ~editor_delegate_t () { }
 		virtual std::map<std::string, std::string> variables_for_bundle_item (bundles::item_ptr item) = 0;
+		// Completions from a language server for the word ending at `pos`, best first.
+		virtual std::vector<std::string> language_server_completions (text::pos_t const& pos, std::string const& prefix) { return { }; }
 	};
 
 	enum indent_correction_t { kIndentCorrectNever, kIndentCorrectNonEmptyLines, kIndentCorrectAlways };

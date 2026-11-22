@@ -1,0 +1,7 @@
+target "${dirname}" {
+	require OakFoundation document io ns settings text
+	headers src/LSPClient.h src/LSPManager.h src/position.h
+	sources src/*.mm
+	tests tests/t_*.{mm,cc}
+	frameworks Cocoa
+}

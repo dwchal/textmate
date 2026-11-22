@@ -1,5 +1,6 @@
 #import "OakTextView.h"
 #import "OakChoiceMenu.h"
+#import <lsp/LSPManager.h>
 #import "OakDocumentView.h" // addAuxiliaryView:atEdge: signature
 #import "OakCommandRefresh.h"
 #import "LiveSearchView.h"
@@ -923,10 +924,19 @@ static std::string shell_quote (std::vector<std::string> paths)
 				return [_self variablesForBundleItem:item];
 			}
 
+			std::vector<std::string> language_server_completions (text::pos_t const& pos, std::string const& prefix)
+			{
+				std::vector<std::string> res;
+				for(NSString* completion in [LSPManager.sharedInstance completionsForDocument:_self.document atPosition:pos prefix:to_ns(prefix) timeout:0.75])
+					res.push_back(to_s(completion));
+				return res;
+			}
+
 			OakTextView* _self;
 		};
 
 		documentView->set_delegate(new textview_delegate_t(self));
+		[LSPManager.sharedInstance attachDocument:_document]; // no-op unless a languageServer is configured for this file
 
 		ng::index_t visibleIndex = _document.visibleIndex;
 		if(_document.selection)

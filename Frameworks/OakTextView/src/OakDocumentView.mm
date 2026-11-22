@@ -172,6 +172,8 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 		NSImage* image = [aName hasPrefix:@"/"] ? [[NSImage alloc] initWithContentsOfFile:aName] : [NSImage imageNamed:aName inSameBundleAsClass:[self class]];
 		if(!image && ![aName hasPrefix:@"/"] && ![aName hasSuffix:@" Template"])
 			image = [NSImage imageNamed:[aName stringByAppendingString:@" Template"] inSameBundleAsClass:[self class]];
+		if(!image && [aName hasPrefix:@"lsp-"]) // language server diagnostics (lsp-error, lsp-warning) reuse the error/warning images
+			image = [NSImage imageNamed:[[aName substringFromIndex:4] stringByAppendingString:@" Template"] inSameBundleAsClass:[self class]];
 
 		if([aName hasPrefix:@"/"] && [[aName stringByDeletingPathExtension] hasSuffix:@" Template"])
 			[image setTemplate:YES];
