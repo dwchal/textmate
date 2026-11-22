@@ -118,9 +118,24 @@ namespace ng
 		// = Language Server (if attached) =
 		// ==================================
 
+		// After member access (“w.”, “p->”, “ns::”) the “word” is the operator itself:
+		// ask with an empty prefix and put the operator back in front of the results.
+		auto const isMemberAccess = [](std::string const& str){
+			static std::string const operators[] = { ".", "->", "::" };
+			for(auto const& op : operators)
+			{
+				if(str == op)
+					return true;
+			}
+			return false;
+		};
+
 		if(_delegate && !prefix.empty())
 		{
-			std::vector<std::string> serverResult = _delegate->language_server_completions(_buffer.convert(bow + prefix.size()), prefix);
+			bool const memberAccess = isMemberAccess(prefix);
+			std::vector<std::string> serverResult;
+			for(auto const& word : _delegate->language_server_completions(_buffer.convert(bow + prefix.size()), memberAccess ? "" : prefix))
+				serverResult.push_back(memberAccess ? prefix + word : word);
 			commandResult.insert(commandResult.begin(), serverResult.begin(), serverResult.end());
 		}
 

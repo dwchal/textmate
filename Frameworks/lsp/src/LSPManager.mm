@@ -435,7 +435,7 @@ static std::string LineOfString (NSString* content, NSUInteger line)
 			text = item[@"insertText"];
 		if(![text isKindOfClass:[NSString class]])
 			text = [item[@"label"] isKindOfClass:[NSString class]] ? [item[@"label"] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet] : nil;
-		if(!text || ![text hasPrefix:prefix] || [text isEqualToString:prefix] || [text rangeOfCharacterFromSet:NSCharacterSet.newlineCharacterSet].location != NSNotFound)
+		if(!text || (prefix.length && ![text hasPrefix:prefix]) || [text isEqualToString:prefix] || [text rangeOfCharacterFromSet:NSCharacterSet.newlineCharacterSet].location != NSNotFound)
 			continue;
 
 		NSString* sortText = [item[@"sortText"] isKindOfClass:[NSString class]] ? item[@"sortText"] : text;

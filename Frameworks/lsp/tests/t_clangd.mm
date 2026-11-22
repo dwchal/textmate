@@ -8,7 +8,7 @@
 // marks (at byte columns, past non-ASCII text), completions come back for a
 // member access, edits are synced, closing the document removes the marks.
 
-static std::string const kClangd = "/usr/bin/clangd";
+static std::string const kClangd = "/usr/bin/clangd"; // only checked for presence; launched via “xcrun clangd”
 
 static BOOL spin_until (NSTimeInterval timeout, BOOL(^condition)())
 {
@@ -53,7 +53,8 @@ void test_clangd_diagnostics_and_completion ()
 	std::string const dir = path::resolve(path::temp("lsp_test"));
 	path::make_dir(dir);
 	path::set_content(path::join(dir, "compile_flags.txt"), "-std=c++17\n");
-	path::set_content(path::join(dir, ".tm_properties"), "languageServer = \"" + kClangd + " --log=error\"\n");
+	// The form documented in LSPManager.h: scoped to file types, server found via xcrun.
+	path::set_content(path::join(dir, ".tm_properties"), "[ source.c, source.c++, source.objc, source.objc++ ]\nlanguageServer = \"xcrun clangd --log=error\"\n");
 
 	std::string const source =
 		"struct Widget { int alpha; int beta; };\n"
@@ -121,6 +122,7 @@ void test_no_setting_means_no_server ()
 	path::make_dir(dir);
 	std::string const file = path::join(dir, "main.cc");
 	path::set_content(file, "int main () { return 0; }\n");
+	path::set_content(path::join(dir, ".tm_properties"), "[ source.python ]\nlanguageServer = \"xcrun clangd\"\n"); // for another file type only
 
 	dispatch_sync(dispatch_get_main_queue(), ^{
 		OakDocument* doc = [OakDocument documentWithPath:to_ns(file)];
