@@ -1,4 +1,5 @@
 #import "OakCommand.h"
+#import "rewrite_file_urls.h"
 #import <document/OakDocument.h>
 #import <document/OakDocumentController.h>
 #import <oak/datatypes.h>
@@ -706,10 +707,12 @@ static pid_t run_command (dispatch_group_t rootGroup, std::string const& cmd, in
 		int len;
 		char buf[8192];
 		__block BOOL keepRunning = YES;
+		oak::file_url_rewriter_t rewriteFileURLs; // see rewrite_file_urls.h
 		@try {
 			while(keepRunning && (len = read(fileHandle.fileDescriptor, buf, sizeof(buf))) > 0)
 			{
-				NSData* data = [NSData dataWithBytes:buf length:len];
+				std::string const rewritten = rewriteFileURLs(buf, len);
+				NSData* data = [NSData dataWithBytes:rewritten.data() length:rewritten.size()];
 				dispatch_sync(dispatch_get_main_queue(), ^{
 					if(keepRunning = !_stop)
 						[self.client URLProtocol:self didLoadData:data];
@@ -726,6 +729,16 @@ static pid_t run_command (dispatch_group_t rootGroup, std::string const& cmd, in
 
 		if(len == -1)
 			perror("HTMLOutput: read");
+
+		std::string const tail = rewriteFileURLs.finish();
+		if(!tail.empty())
+		{
+			NSData* data = [NSData dataWithBytes:tail.data() length:tail.size()];
+			dispatch_sync(dispatch_get_main_queue(), ^{
+				if(!_stop)
+					[self.client URLProtocol:self didLoadData:data];
+			});
+		}
 
 		[fileHandle closeFile];
 		[self.client URLProtocolDidFinishLoading:self];

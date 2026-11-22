@@ -1,4 +1,5 @@
 #import "HOWebViewDelegateHelper.h"
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import "HOBrowserView.h"
 #import <OakAppKit/NSAlert Additions.h>
 #import <OakFoundation/NSString Additions.h>
@@ -119,7 +120,11 @@ static BOOL IsProtocolRelativeURL (NSURL* url)
 
 - (NSURLRequest*)webView:(WebView*)sender resource:(id)identifier willSendRequest:(NSURLRequest*)request redirectResponse:(NSURLResponse*)redirectResponse fromDataSource:(WebDataSource*)dataSource
 {
-	if([[[request URL] scheme] isEqualToString:@"tm-file"])
+	// Navigating to a tm-file URL loads the real file:// page (which may load its own
+	// file:// resources). Subresources keep tm-file and are served by HTMLTMFileProtocol,
+	// since pages from TextMate’s command-output scheme cannot load file:// resources.
+	BOOL isMainResource = [dataSource.request.URL isEqual:request.URL] || [dataSource.initialRequest.URL isEqual:request.URL];
+	if([[[request URL] scheme] isEqualToString:@"tm-file"] && isMainResource)
 	{
 		NSString* fragment = [[request URL] fragment];
 		request = [NSURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"file://localhost%@%s%@", [[[request URL] path] stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLPathAllowedCharacterSet], fragment ? "#" : "", fragment ?: @""]]];
@@ -166,12 +171,44 @@ static BOOL IsProtocolRelativeURL (NSURL* url)
 }
 @end
 
-@interface HTMLTMFileDummyProtocol : NSURLProtocol { }
+// Serves tm-file:///path/to/file from disk. Deliberately not registered as a
+// “local” scheme: WebKit blocks local-scheme resources for pages with an opaque
+// origin, which is what command output (x-txmt-filehandle://job/…) has.
+@interface HTMLTMFileProtocol : NSURLProtocol { }
 @end
 
-@implementation HTMLTMFileDummyProtocol
+@implementation HTMLTMFileProtocol
 + (void)load                                                                                                                                      { [self registerClass:self]; }
 + (BOOL)canInitWithRequest:(NSURLRequest*)request                                                                                                 { return [[[request URL] scheme] isEqualToString:@"tm-file"]; }
 + (NSURLRequest*)canonicalRequestForRequest:(NSURLRequest*)request                                                                                { return request; }
 + (BOOL)requestIsCacheEquivalent:(NSURLRequest*)a toRequest:(NSURLRequest*)b                                                                      { return NO; }
+
+- (void)startLoading
+{
+	NSString* path = self.request.URL.path;
+	NSError* error;
+	NSData* data = path ? [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:&error] : nil;
+	if(!data)
+	{
+		[self.client URLProtocol:self didFailWithError:error ?: [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorFileDoesNotExist userInfo:nil]];
+		return;
+	}
+
+	NSString* mimeType;
+	if(@available(macOS 11.0, *))
+		mimeType = [UTType typeWithFilenameExtension:path.pathExtension].preferredMIMEType;
+	if(!mimeType)
+	{
+		static NSDictionary* const fallback = @{ @"css": @"text/css", @"js": @"text/javascript", @"html": @"text/html", @"htm": @"text/html", @"png": @"image/png", @"jpg": @"image/jpeg", @"jpeg": @"image/jpeg", @"gif": @"image/gif", @"svg": @"image/svg+xml" };
+		mimeType = fallback[path.pathExtension.lowercaseString] ?: @"application/octet-stream";
+	}
+	NSURLResponse* response = [[NSURLResponse alloc] initWithURL:self.request.URL MIMEType:mimeType expectedContentLength:data.length textEncodingName:nil];
+	[self.client URLProtocol:self didReceiveResponse:response cacheStoragePolicy:NSURLCacheStorageNotAllowed];
+	[self.client URLProtocol:self didLoadData:data];
+	[self.client URLProtocolDidFinishLoading:self];
+}
+
+- (void)stopLoading
+{
+}
 @end
