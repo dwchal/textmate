@@ -1865,3 +1865,26 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 	[printer runOperationModalForWindow:aWindow delegate:nil didRunSelector:NULL contextInfo:nil];
 }
 @end
+
+NSArray* OakDocumentMatchesForStringInDocuments (NSArray<OakDocument*>* documents, NSString* searchString, find::options_t options, NSUInteger* totalBufferSize)
+{
+	NSUInteger const count = documents.count;
+	__strong id* results = (__strong id*)calloc(count, sizeof(id));
+	std::vector<NSUInteger> sizes(count, 0);
+	NSUInteger* sizesPtr = sizes.data(); // blocks capture C++ objects by const copy
+
+	dispatch_apply(count, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^(size_t i){
+		NSUInteger size = 0;
+		results[i] = [documents[i] matchesForString:searchString options:options bufferSize:&size] ?: NSNull.null;
+		sizesPtr[i] = size;
+	});
+
+	NSArray* res = [NSArray arrayWithObjects:results count:count];
+	for(NSUInteger i = 0; i < count; ++i)
+		results[i] = nil; // release before freeing the buffer
+	free(results);
+
+	if(totalBufferSize)
+		*totalBufferSize = std::accumulate(sizes.begin(), sizes.end(), NSUInteger(0));
+	return res;
+}

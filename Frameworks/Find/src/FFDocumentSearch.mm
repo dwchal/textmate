@@ -87,23 +87,40 @@ static NSDictionary* GlobOptionsForPath (std::string const& path, NSString* glob
 	options[kSearchDepthFirstSearchKey]     = @YES;
 
 	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+		// Documents are collected in enumeration order and searched in batches
+		// on all cores; results are appended in the original order.
+		NSUInteger const kBatchSize = 64;
+		NSMutableArray<OakDocument*>* batch = [NSMutableArray arrayWithCapacity:kBatchSize];
+
+		void(^flush)() = ^{
+			if(batch.count == 0 || searchToken != _lastSearchToken)
+				return;
+
+			self.lastDocumentPath = batch.lastObject.path;
+			NSUInteger bufferSize = 0;
+			NSArray* matchesPerDocument = OakDocumentMatchesForStringInDocuments(batch, _searchString, _options, &bufferSize);
+			_scannedByteCount += bufferSize;
+			_scannedFileCount += batch.count;
+			[batch removeAllObjects];
+
+			@synchronized(self) {
+				for(id newMatches in matchesPerDocument)
+				{
+					if(newMatches != NSNull.null)
+						[_matches addObjectsFromArray:newMatches];
+				}
+			}
+		};
+
 		[OakDocumentController.sharedInstance enumerateDocumentsAtPaths:_paths options:options usingBlock:^(OakDocument* document, BOOL* stop){
 			if(*stop = searchToken != _lastSearchToken)
 				return;
 
-			self.lastDocumentPath = document.path;
-			NSUInteger bufferSize = 0;
-			NSArray* newMatches = [document matchesForString:_searchString options:_options bufferSize:&bufferSize];
-			_scannedByteCount += bufferSize;
-			_scannedFileCount += 1;
-
-			if(newMatches.count)
-			{
-				@synchronized(self) {
-					[_matches addObjectsFromArray:newMatches];
-				}
-			}
+			[batch addObject:document];
+			if(batch.count == kBatchSize)
+				flush();
 		}];
+		flush();
 
 		dispatch_async(dispatch_get_main_queue(), ^{
 			if(searchToken == _lastSearchToken)

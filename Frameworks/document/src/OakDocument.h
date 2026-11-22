@@ -131,3 +131,8 @@ typedef NS_ENUM(NSInteger, OakDocumentIOResult) {
 // Sent to the first OakDocumentEditor instance
 - (BOOL)handleOutput:(std::string const&)string placement:(output::type)place format:(output_format::type)format caret:(output_caret::type)caret inputRanges:(ng::ranges_t const&)ranges environment:(std::map<std::string, std::string> const&)environment;
 @end
+
+// Searches `documents` concurrently. Element i of the result is the matches
+// for documents[i] (NSNull when none), so callers keep their own ordering.
+// Documents that are open (loaded) are still read on the main thread.
+NSArray* OakDocumentMatchesForStringInDocuments (NSArray<OakDocument*>* documents, NSString* searchString, find::options_t options, NSUInteger* totalBufferSize);
