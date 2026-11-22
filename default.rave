@@ -37,7 +37,7 @@ config debug {
 }
 
 config release {
-	add FLAGS    "-Os -DNDEBUG -flto=thin"
+	add FLAGS    "-O2 -DNDEBUG -flto=thin"
 	add LN_FLAGS "-flto=thin -Wl,-cache_path_lto,'\\${builddir}/.cache'"
 	add LN_FLAGS "-Wl,-dead_strip -Wl,-dead_strip_dylibs"
 	add CS_FLAGS "--timestamp"
