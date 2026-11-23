@@ -49,6 +49,47 @@ cd textmate
 
 The `./configure` script simply checks that all dependencies can be found, and then calls `bin/rave` to bootstrap a `build.ninja` file with default config set to `release` and default target set to `TextMate`.
 
+## Older macOS and Intel
+
+By default the app is built for the Mac you build on and requires macOS 12 or later (`APP_MIN_OS` in `default.rave`), which is the oldest version the current Xcode SDK supports.
+
+To build one app that runs on both Intel and Apple silicon Macs, and on macOS back to 10.13 (High Sierra):
+
+ 1. Install Rust’s Intel target: `rustup target add x86_64-apple-darwin`.
+ 2. Find an SDK that still supports the old deployment target. `MinimumDeploymentTarget` in the SDK’s `SDKSettings.json` says how far back it goes: the macOS 26 SDK (for example `/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk`) supports 10.13, the macOS 27 SDK only 12.0.
+ 3. Build Cap’n Proto for both architectures and that target (Homebrew’s library is built for one architecture and the current macOS only):
+
+    ```sh
+    bin/build_capnp_universal 10.13 /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk
+    ```
+
+ 4. Put this in `local.rave`, with the paths the script printed, then run `./configure && ninja TextMate`:
+
+    ```
+    # default.rave has already composed its flags by the time local.rave is read,
+    # so the deployment target is repeated here: the last one wins.
+    set APP_MIN_OS  "10.13"
+    set APP_SDK     "/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk"
+    add FLAGS       "-mmacosx-version-min=${APP_MIN_OS} -isysroot ${APP_SDK}"
+    add LN_FLAGS    "-mmacosx-version-min=${APP_MIN_OS} -isysroot ${APP_SDK}"
+    add AC_FLAGS    "--minimum-deployment-target=${APP_MIN_OS}"
+    add PLIST_FLAGS "-dAPP_MIN_OS='${APP_MIN_OS}'"
+
+    add FLAGS     "-I${HOME}/build/textmate-deps/capnp-1.5.0-macos10.13/include"
+    add FLAGS     "-I/opt/homebrew/include"
+    set CAPNP_LIB "${HOME}/build/textmate-deps/capnp-1.5.0-macos10.13/lib/libcapnp.a"
+    set KJ_LIB    "${HOME}/build/textmate-deps/capnp-1.5.0-macos10.13/lib/libkj.a"
+
+    config release {
+    	arch "arm64" "x86_64" {
+    		add FLAGS    "-arch ${arch}"
+    		add LN_FLAGS "-arch ${arch}"
+    	}
+    }
+    ```
+
+The Intel half is built for macOS 10.13 and the Apple silicon half for macOS 11, the first version that ran on Apple silicon. Using an API newer than `APP_MIN_OS` without an `@available` check is a compile error, and the linker warns about any object built for a newer system; both must stay at zero. In a universal build every test suite can also be run as Intel code under Rosetta, e.g. `ninja plist/test-x86_64`.
+
 ## Building from within TextMate
 
 You should install the [Ninja][NinjaBundle] bundle which can be installed via _Preferences_ → _Bundles_.

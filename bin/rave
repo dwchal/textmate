@@ -678,10 +678,12 @@ class CompileCargo < Compiler
     dir    = File.dirname(base[:out])
     triple = RUST_TARGETS.fetch(config['arch'], 'host')
     env    = config['APP_MIN_OS'] ? "MACOSX_DEPLOYMENT_TARGET=#{config['APP_MIN_OS'].shellescape} " : ''
+    # Cargo does not rebuild when the deployment target changes, so keep one target directory per target version
+    cache  = config['APP_MIN_OS'] ? "target-macos#{config['APP_MIN_OS']}" : 'target'
 
     base.merge(
       out:         File.join(dir, "lib#{crate}.a"),
-      flags:       [ File.join(dir, 'target'), triple ].map(&:shellescape).join(' '),
+      flags:       [ File.join(dir, cache), triple ].map(&:shellescape).join(' '),
       command:     "#{env}bin/cargo_build $in $out $flags",
       depfile:     '$out.d',
       deps:        'gcc',
