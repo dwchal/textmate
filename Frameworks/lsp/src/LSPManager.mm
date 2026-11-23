@@ -341,7 +341,10 @@ static std::string LineOfString (NSString* content, NSUInteger line)
 
 	OakDocument* document = state.document;
 	if(!document)
+	{
+		os_log_info(OS_LOG_DEFAULT, "LSP: diagnostics for unknown document %{public}@", params[@"uri"]);
 		return;
+	}
 
 	NSArray* diagnostics = [params[@"diagnostics"] isKindOfClass:[NSArray class]] ? params[@"diagnostics"] : @[ ];
 	BOOL const utf8 = state.client.usesUTF8Positions;
@@ -382,6 +385,8 @@ static std::string LineOfString (NSString* content, NSUInteger line)
 			joined += (joined.empty() ? "" : "\n") + text;
 		[document setMarkOfType:to_ns(pair.first.first) atPosition:pair.first.second content:to_ns(joined)];
 	}
+
+	os_log_info(OS_LOG_DEFAULT, "LSP: %lu diagnostics, %lu marks for %{public}@", (unsigned long)diagnostics.count, (unsigned long)marks.size(), document.displayName);
 
 	if(_diagnosticsHandler)
 		_diagnosticsHandler(document, diagnostics.count);
