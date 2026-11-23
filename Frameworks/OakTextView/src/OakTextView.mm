@@ -4575,9 +4575,11 @@ static scope::context_t add_modifiers_to_scope (scope::context_t scope, NSUInteg
 				options |= OakCommandRefresherDocumentDidClose;
 			if(aBundleCommand.input == input::entire_document)
 				options |= OakCommandRefresherDocumentAsInput;
-			OakCommandRefresher* refresher = [OakCommandRefresher scheduleRefreshForCommand:command document:_document window:self.window options:options variables:variables];
+			// Copy what we need out of this block first: scheduling replaces the command’s
+			// terminationHandler, which releases (and frees) the block we are running in.
 			__weak OakTextView* weakSelf = self;
 			OakDocument* refreshDocument = _document;
+			OakCommandRefresher* refresher = [OakCommandRefresher scheduleRefreshForCommand:command document:refreshDocument window:self.window options:options variables:variables];
 			refresher.caretVariablesProvider = ^std::map<std::string, std::string>(){
 				OakTextView* textView = weakSelf;
 				if(!textView || textView.document != refreshDocument || !textView->documentView)
