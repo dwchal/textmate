@@ -566,6 +566,16 @@ static dispatch_group_t PreloadBundlesIndexGroup ()
 	cache = std::move(PreloadedBundlesIndex());
 	cache.set_content_filter(&prune_dictionary);
 
+	// File system events only cover folders that existed when the index was
+	// saved: re-check the top-level bundle folders so that one created (or
+	// removed) while TextMate was not running, e.g. the user’s Bundles folder,
+	// is picked up now rather than ignored until the next unrelated change.
+	for(auto const& path : bundlesPaths)
+	{
+		if(cache.reload(path))
+			self.needsSaveBundlesIndex = YES;
+	}
+
 	_needsCreateBundlesIndex = YES;
 	[self createBundlesIndex:self];
 }
