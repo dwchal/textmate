@@ -1310,15 +1310,20 @@ module Target
     target[:build][:notarize]
   end
 
-  # Unit tests and benchmarks: `ninja <target>/test`, `<target>/bench`, `test`
+  # Unit tests and benchmarks: `ninja <target>/test`, `<target>/bench`, `test`.
+  # In a universal build the tests are also built for every other architecture
+  # as `<target>/test-<arch>` (e.g. `plist/test-x86_64`, which runs under Rosetta).
   def tests(archs, targets)
-    target = archs.values.first
+    first = archs.values.first
 
-    unless target[:build].include?(:tests)
+    unless first[:build].include?(:tests)
       res, rules = nil, []
 
-      if (test_files = target[:tests]) && !test_files.empty?
-        builddir  = File.join(target[:builddir], '_Test', target[:name])
+      archs.values.each_with_index do |target, index|
+        next unless (test_files = target[:tests]) && !test_files.empty?
+
+        suffix    = index == 0 ? '' : "-#{target[:arch]}"
+        builddir  = File.join(target[:builddir], "_Test#{suffix}", target[:name])
         objc      = test_files.any? { |file| file.end_with?('.mm', '.m') }
         generated = File.join(builddir, "tests_#{target[:name]}.#{objc ? 'mm' : 'cc'}")
 
@@ -1369,26 +1374,28 @@ module Target
           command:     '$in && touch $out',
           description: 'Test ‘$in’…',
         }
-        rules << { name: 'phony', in: executable + '.passed', out: target[:identifier] + '/test' }
+        rules << { name: 'phony', in: executable + '.passed', out: target[:identifier] + "/test#{suffix}" }
 
-        rules << {
-          name:        'RunBenchmarks',
-          in:          executable,
-          out:         executable + '.always-run-bench',
-          command:     '$in -b -m',
-          description: 'Benchmark ‘$in’…',
-          pool:        'console',
-        }
-        rules << { name: 'phony', in: executable + '.always-run-bench', out: target[:identifier] + '/bench' }
+        if index == 0
+          rules << {
+            name:        'RunBenchmarks',
+            in:          executable,
+            out:         executable + '.always-run-bench',
+            command:     '$in -b -m',
+            description: 'Benchmark ‘$in’…',
+            pool:        'console',
+          }
+          rules << { name: 'phony', in: executable + '.always-run-bench', out: target[:identifier] + '/bench' }
 
-        res = executable + '.passed'
+          res = executable + '.passed'
+        end
       end
 
-      target[:build][:rules] += rules
-      target[:build][:tests]  = res
+      first[:build][:rules] += rules
+      first[:build][:tests]  = res
     end
 
-    target[:build][:tests]
+    first[:build][:tests]
   end
 
   def defines(archs, targets)

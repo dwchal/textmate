@@ -73,7 +73,7 @@ void test_clangd_diagnostics_and_completion ()
 		[doc loadModalForWindow:nil completionHandler:^(OakDocumentIOResult result, NSString* errorMessage, oak::uuid_t const& filterUUID){
 			loaded = result == OakDocumentIOResultSuccess;
 		}];
-		OAK_ASSERT(spin_until(10, ^{ return loaded; }));
+		OAK_ASSERT(spin_until(10, ^BOOL{ return loaded; }));
 		doc.fileType = @"source.c++";
 
 		__block NSUInteger diagnosticsRounds = 0, lastCount = NSNotFound;
@@ -87,7 +87,7 @@ void test_clangd_diagnostics_and_completion ()
 
 		[LSPManager.sharedInstance attachDocument:doc];
 		OAK_ASSERT([LSPManager.sharedInstance isDocumentAttached:doc]);
-		OAK_ASSERT(spin_until(30, ^{ return lastCount != NSNotFound && lastCount > 0; }));
+		OAK_ASSERT(spin_until(30, ^BOOL{ return lastCount != NSNotFound && lastCount > 0; }));
 
 		auto errors = marks_of_type(doc, kLSPMarkTypeError, 7);
 		OAK_ASSERT_EQ(errors.count(3), 1);
@@ -104,7 +104,7 @@ void test_clangd_diagnostics_and_completion ()
 		// Fix both errors: the edit is synced and the marks go away.
 		doc.content = @"struct Widget { int alpha; int beta; };\nint main () {\n\tWidget w;\n\treturn w.alpha;\n}\n";
 		NSUInteger const before = diagnosticsRounds;
-		OAK_ASSERT(spin_until(30, ^{ return diagnosticsRounds > before && lastCount == 0; }));
+		OAK_ASSERT(spin_until(30, ^BOOL{ return diagnosticsRounds > before && lastCount == 0; }));
 		OAK_ASSERT(marks_of_type(doc, kLSPMarkTypeError, 7).empty());
 
 		[doc close];
@@ -130,7 +130,7 @@ void test_no_setting_means_no_server ()
 		[doc loadModalForWindow:nil completionHandler:^(OakDocumentIOResult result, NSString* errorMessage, oak::uuid_t const& filterUUID){
 			loaded = YES;
 		}];
-		spin_until(10, ^{ return loaded; });
+		spin_until(10, ^BOOL{ return loaded; });
 		doc.fileType = @"source.c++";
 		[LSPManager.sharedInstance attachDocument:doc];
 		OAK_ASSERT(![LSPManager.sharedInstance isDocumentAttached:doc]);

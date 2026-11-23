@@ -8,7 +8,7 @@
 	--card:        #ffffff;
 	--border:      rgba(0, 0, 0, 0.10);
 	--fill:        rgba(0, 0, 0, 0.05);
-	--accent:      -apple-system-control-accent;
+	--accent:      #0a66d8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,7 +19,13 @@
 		--card:       #2a2a2c;
 		--border:     rgba(255, 255, 255, 0.10);
 		--fill:       rgba(255, 255, 255, 0.07);
+		--accent:     #4a9eff;
 	}
+}
+
+/* Use the system accent colour where WebKit knows it (older macOS does not). */
+@supports (color: -apple-system-control-accent) {
+	:root { --accent: -apple-system-control-accent; }
 }
 
 html {

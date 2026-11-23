@@ -1,4 +1,4 @@
-set APP_MIN_OS    "10.12"
+set APP_MIN_OS    "12.0"
 set CS_IDENTITY   "-"
 
 set C_FLAGS       "-std=c99"
@@ -12,6 +12,8 @@ add FLAGS         "-Wno-parentheses -Wno-sign-compare -Wno-switch -Wno-c99-desig
 add FLAGS         "-D'NULL_STR=\"\\uFFFF\"' -D'REST_API=\"https://api.textmate.org\"'"
 add FLAGS         "-IShared/include"
 add FLAGS         "-mmacosx-version-min=${APP_MIN_OS}"
+# Using an API newer than APP_MIN_OS without an @available check is an error
+add FLAGS         "-Werror=unguarded-availability-new"
 
 set LN_FLAGS      "-mmacosx-version-min=${APP_MIN_OS} -fobjc-link-runtime"
 

@@ -1,0 +1,69 @@
+#!/bin/bash
+# Builds static, universal (arm64 + x86_64) Cap’n Proto libraries for an old
+# deployment target, so TextMate.app neither depends on Homebrew at runtime nor
+# requires the macOS version Homebrew’s bottle was built for.
+#
+# Usage: bin/build_capnp_universal [min-macos-version [sdk-path]]
+#
+# Prints the lines to put in local.rave. The library version must match the
+# `capnp` code generator on PATH (the generated headers check this).
+set -euo pipefail
+
+MIN_OS="${1:-12.0}"
+SDK="${2:-$(xcrun --sdk macosx --show-sdk-path)}"
+
+VERSION="$(capnp --version | sed 's/.* //')"
+case "$VERSION" in
+	1.5.0) SHA256=d5ebdf858e9885c33d4b3f765006d68bd66e9b002bf4d607ff4317ef9c1aac6a ;;
+	*) echo "No known checksum for Cap’n Proto $VERSION: add it to $0 after verifying the source archive." >&2; exit 1 ;;
+esac
+
+PREFIX="${CAPNP_PREFIX:-$HOME/build/textmate-deps/capnp-$VERSION-macos$MIN_OS}"
+WORK="$PREFIX/work"
+mkdir -p "$WORK"
+
+ARCHIVE="$WORK/capnproto-$VERSION.tar.gz"
+if [[ ! -f $ARCHIVE ]]; then
+	curl -fsSL -o "$ARCHIVE~" "https://github.com/capnproto/capnproto/archive/refs/tags/v$VERSION.tar.gz"
+	mv "$ARCHIVE~" "$ARCHIVE"
+fi
+echo "$SHA256  $ARCHIVE" | shasum -a 256 -c - >/dev/null || { echo "Checksum mismatch for $ARCHIVE" >&2; exit 1; }
+
+SRC="$WORK/capnproto-$VERSION/c++"
+[[ -d $SRC ]] || tar -xzf "$ARCHIVE" -C "$WORK"
+
+# Anything newer than the deployment target is an error, not a warning: that
+# is the only check we have that the libraries can run on the old system.
+FLAGS="-Werror=unguarded-availability-new -fvisibility-inlines-hidden"
+
+for arch in arm64 x86_64; do
+	build="$WORK/build-$arch"
+	cmake -S "$SRC" -B "$build" -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DBUILD_TESTING=OFF \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DCMAKE_OSX_ARCHITECTURES="$arch" \
+		-DCMAKE_OSX_DEPLOYMENT_TARGET="$MIN_OS" \
+		-DCMAKE_OSX_SYSROOT="$SDK" \
+		-DCMAKE_CXX_FLAGS="$FLAGS" >/dev/null
+	cmake --build "$build" --target kj capnp
+done
+
+mkdir -p "$PREFIX/lib" "$PREFIX/include"
+for lib in kj capnp; do
+	lipo -create -output "$PREFIX/lib/lib$lib.a" \
+		"$(find "$WORK/build-arm64"  -name "lib$lib.a" | head -n1)" \
+		"$(find "$WORK/build-x86_64" -name "lib$lib.a" | head -n1)"
+done
+
+(cd "$SRC/src" && find kj capnp -name '*.h' -not -path '*/testdata/*' -print0 | cpio -pdm0 --quiet "$PREFIX/include")
+
+cat <<EOF
+
+Built $(lipo -archs "$PREFIX/lib/libcapnp.a") libraries for macOS $MIN_OS in $PREFIX
+Add to local.rave:
+
+add FLAGS     "-I$PREFIX/include"
+set CAPNP_LIB "$PREFIX/lib/libcapnp.a"
+set KJ_LIB    "$PREFIX/lib/libkj.a"
+EOF
