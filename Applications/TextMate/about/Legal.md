@@ -2,16 +2,26 @@ Title: Legal
 
 # Legal
 
-TextMate makes use of the following frameworks.
+TextMate is released under the [GNU General Public License, version 3](https://github.com/textmate/textmate/blob/master/LICENSE). TextMate is a trademark of Allan Odgaard. This build is maintained independently of MacroMates Ltd.
 
-## Onigmo
+## Included software
 
-[Onigmo][] is copyright K.Takata.
+TextMate includes the following open source software.
 
-Onigmo is licensed under the [BSD license][bsd-onig].
+### Onigmo
 
-Based on [Oniguruma], copyright K.Kosako.
+Regular expression engine. Copyright K. Takata, based on [Oniguruma](https://github.com/kkos/oniguruma) by K. Kosako. [BSD license](https://github.com/k-takata/Onigmo/blob/master/COPYING). <https://github.com/k-takata/Onigmo>
 
-[Onigmo]: https://github.com/k-takata/Onigmo
-[Oniguruma]: https://github.com/kkos/oniguruma
-[bsd-onig]: https://raw.github.com/k-takata/Onigmo/master/COPYING
+### Cap’n Proto
+
+Serialization library, used for TextMate’s caches. Copyright Sandstorm Development Group, Inc., Cloudflare, Inc., and other contributors. [MIT license](https://github.com/capnproto/capnproto/blob/master/LICENSE). <https://capnproto.org>
+
+### kvdb
+
+Key-value store backed by SQLite. Copyright Colin Young. MIT license. <https://github.com/colinyoung/kvdb>
+
+## Downloaded on first use
+
+### Mermaid
+
+The Markdown preview downloads Mermaid 11.4.1 from the jsDelivr CDN the first time a document contains a diagram, verifies its checksum, and keeps it in `~/Library/Caches/com.macromates.TextMate`. It is not part of the application. Copyright Knut Sveidqvist. [MIT license](https://github.com/mermaid-js/mermaid/blob/develop/LICENSE). <https://mermaid.js.org>

@@ -2,6 +2,28 @@ Title: Release Notes
 
 # Changes
 
+## 2026-11-23 — DC Productions build
+
+* Redesigned About window: follows Dark Mode, shows build details with a Copy button, links that work, and an up-to-date Legal page. The Registration tab is gone (TextMate is free software) and the Bundles tab is no longer empty.
+* Fixed a crash when a command that refreshes its output (such as the Markdown preview) finished running.
+
+## 2026-11-22 — DC Productions build
+
+* Markdown preview (⌃⌥⌘P) is built in and no longer needs Ruby 1.8. It follows Dark Mode, keeps the section you are editing in view, and renders ` ```mermaid ` diagrams. HTML output can open beside the document (Preferences → Projects).
+* Language server support, off by default: diagnostics in the gutter and server completions first in the ⎋ list. Enable per file type with `languageServer` in `.tm_properties`.
+* Find in Folder searches files in parallel (about 3× faster).
+* Syntax parsing is 12–19% faster; release builds are optimized for speed (`-O2`).
+* HTML output is styled correctly again on current macOS.
+* Software update checks are removed.
+* Scope selector parsing and matching is implemented in Rust.
+
+## 2026-07-13 — DC Productions build
+
+* Original gear app icon.
+* The bundle index loads in the background during launch.
+* Timers declare a tolerance so macOS can coalesce wake-ups.
+* The file browser no longer fetches icons it never displays.
+
 ## 2021-04-16 (v2.0.22)
 
 * A few more tweaks to improve things on macOS 11 including dropping use of floating header rows in file browser (SCM Status) and search results, as these appear to cause problems on Big Sur.

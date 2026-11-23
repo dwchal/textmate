@@ -108,6 +108,11 @@
       }
     }
 
+    if (commits.length == 0) {
+      mainContainer.innerHTML = '<p class="secondary">No change history was found in the installed bundles.</p>';
+      return;
+    }
+
     commits.sort(function(a, b) {
       return b.date - a.date;
     });
@@ -132,6 +137,7 @@
 </head>
 <body>
   <h1 id="releasenotes">Bundles</h1>
-  <article id="wrapper"></article>
+  <p class="secondary">Recent changes to the bundles you have installed, newest first.</p>
+  <article id="wrapper"><p class="secondary">Loading…</p></article>
 </body>
 </html>

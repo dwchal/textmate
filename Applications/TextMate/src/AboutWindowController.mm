@@ -5,8 +5,36 @@
 #import <BundlesManager/BundlesManager.h>
 #import <license/LicenseManager.h>
 #import <ns/ns.h>
+#import <sys/sysctl.h>
 
 static NSString* const kUserDefaultsReleaseNotesDigestKey = @"releaseNotesDigest";
+
+static NSString* BuildDate ()
+{
+	NSDate* date;
+	if(![NSBundle.mainBundle.executableURL getResourceValue:&date forKey:NSURLContentModificationDateKey error:nil] || !date)
+		return @"";
+	return [NSDateFormatter localizedStringFromDate:date dateStyle:NSDateFormatterMediumStyle timeStyle:NSDateFormatterNoStyle];
+}
+
+static NSString* Architecture ()
+{
+#if defined(__arm64__)
+	return @"Apple silicon";
+#else
+	int translated = 0;
+	size_t size = sizeof(translated);
+	if(sysctlbyname("sysctl.proc_translated", &translated, &size, NULL, 0) == 0 && translated)
+		return @"Intel (Rosetta)";
+	return @"Intel";
+#endif
+}
+
+static NSString* OSVersion ()
+{
+	NSOperatingSystemVersion v = NSProcessInfo.processInfo.operatingSystemVersion;
+	return v.patchVersion ? [NSString stringWithFormat:@"%ld.%ld.%ld", v.majorVersion, v.minorVersion, v.patchVersion] : [NSString stringWithFormat:@"%ld.%ld", v.majorVersion, v.minorVersion];
+}
 
 static NSData* Digest (NSString* someString)
 {
@@ -61,7 +89,7 @@ static NSData* Digest (NSString* someString)
 	NSWindow* win = [[NSPanel alloc] initWithContentRect:rect styleMask:(NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskFullSizeContentView) backing:NSBackingStoreBuffered defer:NO];
 	if((self = [super initWithWindow:win]))
 	{
-		_segmentLabels    = @[ @"About", @"Changes", @"Bundles", @"Registration", @"Legal", @"Contributions" ];
+		_segmentLabels    = @[ @"About", @"Changes", @"Bundles", @"Legal", @"Contributions" ];
 		_segmentedControl = [NSSegmentedControl segmentedControlWithLabels:_segmentLabels trackingMode:NSSegmentSwitchTrackingSelectOne target:self action:@selector(takeSelectedSegmentFrom:)];
 
 		self.toolbar = [[NSToolbar alloc] initWithIdentifier:@"About TextMate"];
@@ -89,9 +117,13 @@ static NSData* Digest (NSString* someString)
 			if(NSMutableString* jsBridge = [NSMutableString stringWithContentsOfURL:url encoding:NSUTF8StringEncoding error:&error])
 			{
 				NSDictionary* variables = @{
-					@"version":   [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"],
-					@"copyright": [NSBundle.mainBundle objectForInfoDictionaryKey:@"NSHumanReadableCopyright"],
-					@"licensees": LicenseManager.sharedInstance.owner ?: [NSNull null],
+					@"version":      [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"] ?: @"",
+					@"build":        [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleVersion"] ?: @"",
+					@"buildDate":    BuildDate(),
+					@"architecture": Architecture(),
+					@"osVersion":    OSVersion(),
+					@"copyright":    [NSBundle.mainBundle objectForInfoDictionaryKey:@"NSHumanReadableCopyright"] ?: @"",
+					@"licensees":    LicenseManager.sharedInstance.owner ?: [NSNull null],
 				};
 
 				[variables enumerateKeysAndObjectsUsingBlock:^(NSString* key, NSString* value, BOOL* stop){
@@ -160,7 +192,6 @@ static NSData* Digest (NSString* someString)
 		@"About":         @"About/About",
 		@"Changes":       @"About/Changes",
 		@"Bundles":       @"About/Bundles",
-		@"Registration":  @"About/Registration",
 		@"Legal":         @"About/Legal",
 		@"Contributions": @"About/Contributions"
 	};
@@ -228,15 +259,16 @@ static NSData* Digest (NSString* someString)
 // = WKWebView =
 // =============
 
-static NSDictionary* RemoveOldCommits (NSDictionary* src)
+// Keeps commits from `year` (that of the newest commit across all bundles) and the two years before.
+// Measuring from today left the page empty once bundles stopped receiving frequent updates.
+static NSDictionary* RemoveOldCommits (NSDictionary* src, NSInteger year)
 {
 	NSMutableDictionary* res = [src mutableCopy];
 	NSMutableArray* commits = [NSMutableArray array];
 
-	NSInteger year = [[[[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian] components:NSCalendarUnitYear fromDate:[NSDate date]] year];
 	NSMutableArray* years = [NSMutableArray array];
-	for(size_t i = year-2; i <= year; ++i)
-		[years addObject:[NSString stringWithFormat:@"%4zu-", i]];
+	for(NSInteger i = year-2; i <= year; ++i)
+		[years addObject:[NSString stringWithFormat:@"%04ld-", (long)i]];
 
 	for(NSDictionary* commit in src[@"commits"])
 	{
@@ -257,29 +289,46 @@ static NSDictionary* RemoveOldCommits (NSDictionary* src)
 	if(![_selectedPage isEqualToString:@"Bundles"])
 		return;
 
-	bool first = true;
-	NSMutableString* str = [NSMutableString stringWithString:@"{\"bundles\":["];
+	NSMutableArray<NSDictionary*>* changes = [NSMutableArray array];
+	NSInteger newestYear = 0;
 	for(Bundle* bundle in BundlesManager.sharedInstance.bundles)
 	{
 		if(!bundle.installed || !bundle.path)
 			continue;
 
 		NSError* err = NULL;
-		if(NSString* content = [NSString stringWithContentsOfFile:[bundle.path stringByAppendingPathComponent:@"Changes.json"] encoding:NSUTF8StringEncoding error:&err])
+		if(NSData* content = [NSData dataWithContentsOfFile:[bundle.path stringByAppendingPathComponent:@"Changes.json"] options:0 error:&err])
 		{
-			if(NSDictionary* obj = [NSJSONSerialization JSONObjectWithData:[content dataUsingEncoding:NSUTF8StringEncoding] options:0 error:&err])
+			if(NSDictionary* obj = [NSJSONSerialization JSONObjectWithData:content options:0 error:&err])
 			{
-				if(NSData* data = [NSJSONSerialization dataWithJSONObject:RemoveOldCommits(obj) options:0 error:&err])
+				[changes addObject:obj];
+				for(NSDictionary* commit in obj[@"commits"])
 				{
-					if(!std::exchange(first, false))
-						[str appendString:@","];
-
-					[str appendString:[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]];
-					continue;
+					NSString* date = commit[@"date"];
+					if([date isKindOfClass:[NSString class]] && date.length >= 4)
+						newestYear = std::max(newestYear, (NSInteger)[date substringToIndex:4].integerValue);
 				}
+				continue;
 			}
 		}
 		NSLog(@"%@: %@", bundle.name, err.localizedDescription);
+	}
+
+	bool first = true;
+	NSMutableString* str = [NSMutableString stringWithString:@"{\"bundles\":["];
+	for(NSDictionary* obj in changes)
+	{
+		NSError* err = NULL;
+		if(NSData* data = [NSJSONSerialization dataWithJSONObject:RemoveOldCommits(obj, newestYear) options:0 error:&err])
+		{
+			if(!std::exchange(first, false))
+				[str appendString:@","];
+			[str appendString:[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]];
+		}
+		else
+		{
+			NSLog(@"%@: %@", obj[@"name"], err.localizedDescription);
+		}
 	}
 	[str appendString:@"]}"];
 
@@ -324,6 +373,11 @@ static NSDictionary* RemoveOldCommits (NSDictionary* src)
 			static os_log_t log = os_log_create("com.macromates.JavaScript", "log");
 			os_log(log, "%{public}@: %{public}@", self.webView.title, payload[@"message"]);
 		}
+	}
+	else if([command isEqualToString:@"copyText"] && [payload[@"text"] isKindOfClass:[NSString class]])
+	{
+		[NSPasteboard.generalPasteboard clearContents];
+		[NSPasteboard.generalPasteboard setString:payload[@"text"] forType:NSPasteboardTypeString];
 	}
 	else if([command isEqualToString:@"addLicense"])
 	{

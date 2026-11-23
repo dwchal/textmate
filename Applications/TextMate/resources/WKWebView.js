@@ -20,6 +20,12 @@ let TextMate = {
 			}
 		});
 	},
+	copyText(text) {
+		webkit.messageHandlers.textmate.postMessage({
+			command: "copyText",
+			payload: { text: String(text) }
+		});
+	},
 	addLicense(callback) {
 		let options = { };
 		if(callback !== undefined) {
@@ -44,7 +50,11 @@ let TextMate = {
 	},
 	nextCallbackId: 1,
 	callbacks: new Map(),
-	version:	  null,
-	licensees: null,
-	copyright: null
+	version:      null,
+	build:        null,
+	buildDate:    null,
+	architecture: null,
+	osVersion:    null,
+	licensees:    null,
+	copyright:    null
 };
