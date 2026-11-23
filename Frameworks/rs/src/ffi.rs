@@ -27,3 +27,27 @@ pub(crate) unsafe fn emit(sink: Sink, ctx: *mut c_void, out: &[u8]) {
 pub unsafe extern "C" fn tm_text_asciify(str: *const u8, len: usize, sink: Sink, ctx: *mut c_void) {
     emit(sink, ctx, &crate::asciify::asciify(bytes(str, len)));
 }
+
+/// Receives one covered range of the candidate, as byte offsets.
+pub type RangeSink = unsafe extern "C" fn(ctx: *mut c_void, from: usize, to: usize);
+
+/// Fuzzy match score of `filter` against `candidate` (0 = no match); see `rank.rs`.
+///
+/// # Safety
+/// Both strings must point to as many readable bytes as their lengths say.
+/// `ranges` may be null; otherwise it is called once per covered range.
+#[no_mangle]
+pub unsafe extern "C" fn tm_text_rank(filter: *const u8, filter_len: usize, candidate: *const u8, candidate_len: usize, ranges: Option<RangeSink>, ctx: *mut c_void) -> f64 {
+    let (filter, candidate) = (bytes(filter, filter_len), bytes(candidate, candidate_len));
+    match ranges {
+        None => crate::rank::rank(filter, candidate, None),
+        Some(sink) => {
+            let mut out = Vec::new();
+            let score = crate::rank::rank(filter, candidate, Some(&mut out));
+            for (from, to) in out {
+                sink(ctx, from, to);
+            }
+            score
+        }
+    }
+}

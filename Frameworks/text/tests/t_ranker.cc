@@ -72,3 +72,32 @@ void test_highlight_range ()
 	OAK_ASSERT_EQ(ranges[1].first,  4);
 	OAK_ASSERT_EQ(ranges[1].second, 5);
 }
+
+void test_ranker_no_word_starts ()
+{
+	// Nothing in “.gitignore” counts as a word start (“g” follows a period); this used to rank as NaN
+	double rank = oak::rank("git", ".gitignore");
+	OAK_ASSERT(rank == rank);
+	OAK_ASSERT_LT(0, rank);
+	OAK_ASSERT_LT(rank, oak::rank("git", "git.cc"));
+}
+
+void test_ranker_long_candidate ()
+{
+	// Candidates too long for the full algorithm used to get rank 0 (“no match”) from an integer division
+	std::string path;
+	for(size_t i = 0; i < 200; ++i)
+		path += "directory/";
+	path += "needle.txt";
+
+	OAK_ASSERT_LT(0, oak::rank("needle", path));
+	OAK_ASSERT_EQ(oak::rank("needlq", path), 0);
+}
+
+void test_ranker_ranges ()
+{
+	std::vector< std::pair<size_t, size_t> > ranges;
+	OAK_ASSERT_LT(0, oak::rank("otv", "OakTextView.mm", &ranges));
+	std::vector< std::pair<size_t, size_t> > const expected = { { 0, 1 }, { 3, 4 }, { 7, 8 } };
+	OAK_ASSERT(ranges == expected);
+}
