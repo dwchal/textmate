@@ -267,9 +267,16 @@ namespace command
 			__block bool shouldWait = true;
 			CFRunLoopRef runLoop = CFRunLoopGetCurrent();
 
+			// CFRunLoopStop() is ignored for a run loop that is not running yet, so
+			// calling it from another thread could be lost just before the
+			// CFRunLoopRun() below and leave us waiting forever. Stop from a block
+			// that the run loop itself executes instead.
 			dispatch_group_notify(_dispatch_group, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-				shouldWait = false;
-				CFRunLoopStop(runLoop);
+				CFRunLoopPerformBlock(runLoop, kCFRunLoopCommonModes, ^{
+					shouldWait = false;
+					CFRunLoopStop(runLoop);
+				});
+				CFRunLoopWakeUp(runLoop);
 			});
 
 			while(shouldWait)

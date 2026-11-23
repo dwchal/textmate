@@ -188,7 +188,29 @@ namespace oak
 			basic_tree_t* _tree;
 		};
 
-		typedef std::reverse_iterator<iterator> reverse_iterator;
+		// An iterator stores the value it refers to, so std::reverse_iterator (which
+		// dereferences a temporary copy) would hand out references to a dead object.
+		// This one keeps the element it is at alive for as long as it lives itself.
+		struct reverse_iterator : std::iterator<std::bidirectional_iterator_tag, value_type>
+		{
+			explicit reverse_iterator (iterator const& base) : _base(base), _elem(base) { }
+			iterator base () const { return _base; }
+
+			bool operator== (reverse_iterator const& rhs) const { return _base == rhs._base; }
+			bool operator!= (reverse_iterator const& rhs) const { return _base != rhs._base; }
+
+			value_type& operator*  () const { _elem = _base; --_elem; return *_elem;  }
+			value_type* operator-> () const { return &**this; }
+
+			reverse_iterator& operator++ ()   { --_base; return *this; }
+			reverse_iterator& operator-- ()   { ++_base; return *this; }
+			reverse_iterator operator++ (int) { reverse_iterator tmp(*this); --_base; return tmp; }
+			reverse_iterator operator-- (int) { reverse_iterator tmp(*this); ++_base; return tmp; }
+
+		private:
+			iterator _base;
+			mutable iterator _elem;
+		};
 
 		iterator begin ()                    { node_t* res = _root; while(!res->_left->is_null()) res = res->_left; return iterator(res, this); }
 		iterator end ()                      { return iterator(node_t::null_ptr(), this); }

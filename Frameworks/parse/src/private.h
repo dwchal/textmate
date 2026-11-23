@@ -79,8 +79,8 @@ namespace parse
 		regexp::pattern_t while_pattern;    // a while-pattern active in current context
 		regexp::pattern_t end_pattern;      // the end-pattern which exits this context
 		size_t anchor;
-		bool zw_begin_match;
-		bool apply_end_last;
+		bool zw_begin_match = false; // both were uninitialized for contexts that are not entered through a begin
+		bool apply_end_last = false; // match (the root): has_cycle() then read whatever was in memory
 
 		bool operator== (stack_t const& rhs) const;
 		bool operator!= (stack_t const& rhs) const;

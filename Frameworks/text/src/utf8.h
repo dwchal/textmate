@@ -134,7 +134,7 @@ namespace utf8
 				else if((ch & 0x80) == 0x80)
 				{
 					size_t numBytes = 1;
-					while(ch & (1 << (7-numBytes)))
+					while(numBytes < 8 && (ch & (1 << (7-numBytes))))
 						++numBytes;
 
 					if(numBytes > 6)

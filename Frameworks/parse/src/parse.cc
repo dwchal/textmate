@@ -518,7 +518,7 @@ namespace parse
 
 			collect_rules(first, last, i, firstLine, stack, rules, match_cache);
 		}
-		stack->anchor = first + stack->anchor == last ? 0 : SIZE_T_MAX;
+		stack->anchor = stack->anchor == size_t(last - first) ? 0 : SIZE_T_MAX;
 		return stack;
 	}
 
