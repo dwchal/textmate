@@ -127,12 +127,16 @@ namespace ng
 		if(_spelling)
 			_spelling->set_disabled(true);
 
+		size_t repairedFrom = SIZE_T_MAX, repairedTo = 0;
+
 		std::lock_guard<std::mutex> lock(grammar()->mutex());
 		while(!_dirty.empty() && !_parser_states.empty())
 		{
 			size_t n    = convert(_dirty.begin()->first).line;
 			size_t from = begin(n);
 			size_t to   = end(n);
+			repairedFrom = std::min(repairedFrom, from);
+			repairedTo   = std::max(repairedTo, to);
 			auto state  = from == 0 ? _parser_states.begin() : _parser_states.find(from);
 			if(state == _parser_states.end())
 			{
@@ -147,7 +151,40 @@ namespace ng
 		}
 
 		if(_spelling)
+		{
 			_spelling->set_disabled(false);
+
+			// The lines parsed above had their misspellings removed but were not
+			// checked: do that when the run loop is free again, rather than leave
+			// them unmarked until the text is next edited.
+			if(repairedFrom < repairedTo)
+			{
+				bool const scheduled   = _spelling_recheck_from < _spelling_recheck_to;
+				_spelling_recheck_from = std::min(_spelling_recheck_from, repairedFrom);
+				_spelling_recheck_to   = std::max(_spelling_recheck_to, repairedTo);
+
+				if(!scheduled)
+				{
+					if(!_spelling_recheck_reference)
+						_spelling_recheck_reference = std::make_shared<bool>(true);
+					std::weak_ptr<bool> bufferRef = _spelling_recheck_reference;
+
+					CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+					CFRunLoopPerformBlock(runLoop, kCFRunLoopCommonModes, ^{
+						if(bufferRef.lock())
+						{
+							size_t const from = std::min(_spelling_recheck_from, size());
+							size_t const to   = std::min(_spelling_recheck_to, size());
+							_spelling_recheck_from = SIZE_T_MAX;
+							_spelling_recheck_to   = 0;
+							if(from < to)
+								recheck_spelling(from, to);
+						}
+					});
+					CFRunLoopWakeUp(runLoop);
+				}
+			}
+		}
 	}
 
 } /* ng */

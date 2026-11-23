@@ -231,6 +231,11 @@ namespace ng
 		indexed_map_t<parse::stack_ptr>  _parser_states;
 
 		std::shared_ptr<spelling_t> _spelling;
+
+		// Text that wait_for_repair() parsed while spell checking was disabled, to be checked once the run loop is free again
+		std::shared_ptr<bool> _spelling_recheck_reference;
+		size_t _spelling_recheck_from = SIZE_T_MAX;
+		size_t _spelling_recheck_to   = 0;
 		std::shared_ptr<symbols_t>  _symbols;
 		std::shared_ptr<marks_t>    _marks;
 		std::shared_ptr<pairs_t>    _pairs;

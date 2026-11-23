@@ -232,7 +232,7 @@ namespace ng
 		{
 			if(i && _spelling->misspelled_at(i-1))
 				left.push_scope("dyn.misspelled");
-			if(i+i < size() && _spelling->misspelled_at(i))
+			if(i < size() && _spelling->misspelled_at(i))
 				right.push_scope("dyn.misspelled");
 		}
 

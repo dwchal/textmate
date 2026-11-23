@@ -40,6 +40,8 @@ static CGRect from_str (std::string const& s)
 			}
 		}
 	}
+	if(x1 <= x0 || y1 <= y0) // no ‘x’ in the pattern: the unsigned subtractions below would wrap around
+		return CGRectZero;
 	return CGRectMake(x0, y0, x1 - x0, y1 - y0);
 }
 

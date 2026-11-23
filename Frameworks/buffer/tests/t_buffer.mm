@@ -104,6 +104,14 @@ void test_xml_markup ()
 	OAK_ASSERT_EQ(buf.xml_substr(6, 13), "<text>&lt;World></text>");
 }
 
+// wait_for_repair() parses with spell checking disabled and checks the text
+// it parsed once the run loop is free again: give it that chance.
+static void wait_for_repair_and_spelling (ng::buffer_t& buf)
+{
+	buf.wait_for_repair();
+	CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.05, false);
+}
+
 void test_spelling ()
 {
 	ng::buffer_t buf;
@@ -112,7 +120,7 @@ void test_spelling ()
 	buf.set_live_spelling(true);
 	buf.insert(0, "myfo god\nthat ibs nice\nlamere check\n");
 	buf.bump_revision();
-	buf.wait_for_repair();
+	wait_for_repair_and_spelling(buf);
 
 	OAK_ASSERT_EQ(buf.misspellings(0, buf.size()).size(), 6);
 
@@ -130,7 +138,7 @@ void test_spelling_2 ()
 	buf.set_live_spelling(true);
 	buf.insert(0, "it mq xy");
 	buf.bump_revision();
-	buf.wait_for_repair();
+	wait_for_repair_and_spelling(buf);
 
 	std::map<size_t, bool> bad = buf.misspellings(0, buf.size());
 	OAK_ASSERT_EQ(bad.size(), 3);
@@ -145,7 +153,7 @@ void test_spelling_3 ()
 	buf.set_live_spelling(true);
 	buf.insert(0, "it mq xy");
 	buf.bump_revision();
-	buf.wait_for_repair();
+	wait_for_repair_and_spelling(buf);
 
 	std::map<size_t, bool> bad = buf.misspellings(4, 7);
 	OAK_ASSERT_EQ(bad.size(), 3);
