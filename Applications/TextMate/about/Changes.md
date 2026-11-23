@@ -6,6 +6,17 @@ Title: Release Notes
 
 * Redesigned About window: follows Dark Mode, shows build details with a Copy button, links that work, and an up-to-date Legal page. The Registration tab is gone (TextMate is free software) and the Bundles tab is no longer empty.
 * Fixed a crash when a command that refreshes its output (such as the Markdown preview) finished running.
+* The app is universal (Intel and Apple silicon) and built for macOS 10.13 and later.
+* The gutter draws again on macOS 14 and later: line numbers, bookmarks, fold arrows and language server marks were hidden behind a divider that painted outside its bounds.
+* Fuzzy matching in Go to File, the symbol chooser and the bundle item chooser is implemented in Rust and about twice as fast. Names with no word-start characters (such as `.gitignore`) no longer rank as “not a number”, and very long paths no longer drop out of the list.
+* Glob parsing is implemented in Rust. A glob with many unbalanced `{` no longer takes exponential time.
+* `asciify` in format strings gives the same result on every macOS version (it relied on the system’s `iconv`, which now drops characters).
+* Text parsed synchronously, for example by opening the symbol chooser right after loading a file, is spell-checked instead of staying unmarked until edited.
+* Syntax parsing no longer reads two uninitialized flags, which could make it skip a rule.
+* A command’s completion can no longer be missed, which left the caller waiting forever.
+* A bundle folder created while TextMate was not running is picked up at launch.
+* The release notes open after an update again.
+* New app icon.
 
 ## 2026-11-22 — Opportunistic Labs build
 

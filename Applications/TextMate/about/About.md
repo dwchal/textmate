@@ -49,14 +49,17 @@ This copy of TextMate is built by [Opportunistic Labs](https://opportunisticlabs
 * **Find in Folder** searches files in parallel: about 3× faster.
 * **Syntax highlighting** parses 12–19% faster, and the app is compiled for speed rather than size.
 * **Launching** loads the bundle index in the background, and the file browser no longer computes icons it never shows.
+* **Choosers** (Go to File, symbols, bundle items) rank matches about twice as fast.
 * **Lower energy use:** timers let macOS coalesce wake-ups.
 
 ### Other changes
 
 * HTML output (previews, command output) is styled correctly again on current macOS.
 * Software update checks are removed: update by rebuilding from the repository.
-* Scope selectors, used by themes, bundles, and settings, are implemented in Rust.
-* An original gear app icon.
+* **One app for Intel and Apple silicon,** built for macOS 10.13 and later.
+* **Rust:** scope selectors, fuzzy matching, glob parsing and ASCII transliteration are implemented in Rust, each checked against the code it replaced on millions of inputs.
+* **Fixes:** line numbers, bookmarks and fold arrows are visible again on macOS 14 and later; text parsed right after opening is spell-checked; names such as `.gitignore` no longer upset sorting in Go to File.
+* A new app icon: the gear, with a text cursor for an axle.
 
 See the **Changes** tab for dates and details.
 
