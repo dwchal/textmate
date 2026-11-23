@@ -54,3 +54,14 @@ exec "$preview"
 PLIST
 
 echo "Installed: $dest"
+
+# TextMate trusts its cached bundle index at launch and does not notice a user
+# Bundles folder that appeared since, so the override would stay inactive.
+index="$HOME/Library/Caches/com.macromates.TextMate/BundlesIndex.binary"
+if [[ -e $index ]]; then
+	if pgrep -qx TextMate; then
+		echo "Quit TextMate, delete “$index” and relaunch to activate it."
+	else
+		rm -f "$index"
+	fi
+fi
