@@ -2,7 +2,7 @@ Title: Legal
 
 # Legal
 
-TextMate is released under the [GNU General Public License, version 3](https://github.com/textmate/textmate/blob/master/LICENSE). TextMate is a trademark of Allan Odgaard. This build is maintained independently of MacroMates Ltd.
+TextMate is released under the [GNU General Public License, version 3](https://github.com/textmate/textmate/blob/master/LICENSE). TextMate is a trademark of Allan Odgaard. This build is maintained by [Opportunistic Labs](https://opportunisticlabs.com), independently of MacroMates Ltd.
 
 ## Included software
 

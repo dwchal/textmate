@@ -2,12 +2,12 @@ Title: Release Notes
 
 # Changes
 
-## 2026-11-23 — DC Productions build
+## 2026-11-23 — Opportunistic Labs build
 
 * Redesigned About window: follows Dark Mode, shows build details with a Copy button, links that work, and an up-to-date Legal page. The Registration tab is gone (TextMate is free software) and the Bundles tab is no longer empty.
 * Fixed a crash when a command that refreshes its output (such as the Markdown preview) finished running.
 
-## 2026-11-22 — DC Productions build
+## 2026-11-22 — Opportunistic Labs build
 
 * Markdown preview (⌃⌥⌘P) is built in and no longer needs Ruby 1.8. It follows Dark Mode, keeps the section you are editing in view, and renders ` ```mermaid ` diagrams. HTML output can open beside the document (Preferences → Projects).
 * Language server support, off by default: diagnostics in the gutter and server completions first in the ⎋ list. Enable per file type with `languageServer` in `.tm_properties`.
@@ -17,7 +17,7 @@ Title: Release Notes
 * Software update checks are removed.
 * Scope selector parsing and matching is implemented in Rust.
 
-## 2026-07-13 — DC Productions build
+## 2026-07-13 — Opportunistic Labs build
 
 * Original gear app icon.
 * The bundle index loads in the background during launch.

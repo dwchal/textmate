@@ -12,5 +12,5 @@ TextMate was created by Allan Odgaard and has been improved by many contributors
 
 ## This build
 
-* [Commit history](https://github.com/dwchal/textmate/commits/perf-and-features) of the DC Productions changes
+* [Commit history](https://github.com/dwchal/textmate/commits/master) of the [Opportunistic Labs](https://opportunisticlabs.com) changes
 * [Source code](https://github.com/dwchal/textmate)
