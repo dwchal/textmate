@@ -236,6 +236,7 @@ namespace ng
 		std::shared_ptr<bool> _spelling_recheck_reference;
 		size_t _spelling_recheck_from = SIZE_T_MAX;
 		size_t _spelling_recheck_to   = 0;
+		void schedule_spelling_recheck ();
 		std::shared_ptr<symbols_t>  _symbols;
 		std::shared_ptr<marks_t>    _marks;
 		std::shared_ptr<pairs_t>    _pairs;

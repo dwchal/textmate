@@ -20,6 +20,10 @@ Serialization library, used for TextMate’s caches. Copyright Sandstorm Develop
 
 Key-value store backed by SQLite. Copyright Colin Young. MIT license. <https://github.com/colinyoung/kvdb>
 
+### The Rust Standard Library
+
+Parts of TextMate are written in Rust and include its standard library. Copyrights are retained by its contributors. Licensed under the [Apache License, Version 2.0](https://github.com/rust-lang/rust/blob/master/LICENSE-APACHE) or the [MIT license](https://github.com/rust-lang/rust/blob/master/LICENSE-MIT), at your option. <https://www.rust-lang.org>
+
 ## Downloaded on first use
 
 ### Mermaid

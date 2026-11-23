@@ -18,5 +18,5 @@ done
 iconutil --convert icns --output ../TextMate.icns "$iconset"
 
 sips -z 256 256 "$tmp/1024.png" --out ../../about/images/icon.png >/dev/null   # About window
-sips -z 512 512 "$tmp/1024.png" --out logo.png >/dev/null                      # README
-echo "Wrote ../TextMate.icns, ../../about/images/icon.png and logo.png"
+sips -z 512 512 "$tmp/1024.png" --out ../../../../docs/images/logo.png >/dev/null   # README
+echo "Wrote ../TextMate.icns, ../../about/images/icon.png and docs/images/logo.png"

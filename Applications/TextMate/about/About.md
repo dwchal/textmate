@@ -56,7 +56,7 @@ This copy of TextMate is built by [Opportunistic Labs](https://opportunisticlabs
 
 * HTML output (previews, command output) is styled correctly again on current macOS.
 * Software update checks are removed: update by rebuilding from the repository.
-* **One app for Intel and Apple silicon,** built for macOS 10.13 and later.
+* **One app for Intel and Apple silicon,** built for macOS 10.13 and later (so far only run on macOS 27).
 * **Rust:** scope selectors, fuzzy matching, glob parsing and ASCII transliteration are implemented in Rust, each checked against the code it replaced on millions of inputs.
 * **Fixes:** line numbers, bookmarks and fold arrows are visible again on macOS 14 and later; text parsed right after opening is spell-checked; names such as `.gitignore` no longer upset sorting in Go to File.
 * A new app icon: the gear, with a text cursor for an axle.

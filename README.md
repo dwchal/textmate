@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>The Mac text editor, tuned up by <a href="https://opportunisticlabs.com">Opportunistic Labs</a>.</strong><br>
-  Faster, partly rewritten in Rust, and built to run on Macs from 2017’s High Sierra to today, Intel or Apple silicon.
+  Faster, partly rewritten in Rust, and built for Macs from 2017’s High Sierra to today, Intel or Apple silicon.
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@ This is a fork of [TextMate](https://github.com/textmate/textmate), the open sou
 | **Language servers** | Errors and warnings from a language server such as `clangd` in the gutter, and its suggestions first in <kbd>⎋</kbd> completion. Off until you enable it per file type. |
 | **Faster** | Find in Folder searches files in parallel (about 3×), syntax parsing is 12–19% faster, fuzzy matching in the choosers is about 2× faster, and launch no longer waits for the bundle index. |
 | **Rust inside** | Scope selectors, fuzzy matching, glob parsing and ASCII transliteration are written in Rust. Each port was compared with the C++ it replaced on millions of inputs, on both architectures, before the C++ was deleted. |
-| **Old Macs welcome** | One app for Intel and Apple silicon, built for macOS 10.13 and later. |
+| **Old Macs welcome** | One app for Intel and Apple silicon, built for macOS 10.13 and later. It has so far only been run on macOS 27; see [below](#older-macos-and-intel). |
 | **Bugs fixed** | Line numbers and bookmarks were invisible on macOS 14 and later; text parsed right after opening was never spell-checked; names like `.gitignore` broke sorting in the file chooser; and [more](Applications/TextMate/about/Changes.md). All 27 test suites pass on both architectures. |
 
 <p align="center">
@@ -127,6 +127,8 @@ To build one app that runs on both Intel and Apple silicon Macs, and on macOS ba
     	}
     }
     ```
+
+**Not yet tested on older systems.** The build has only been run on macOS 27 (Apple silicon natively, the Intel code under Rosetta). Support for older versions rests on the compiler and linker checks described here, so treat it as untested until it has been tried on the system you care about.
 
 The Intel half is built for macOS 10.13 and the Apple silicon half for macOS 11, the first version that ran on Apple silicon. Using an API newer than `APP_MIN_OS` without an `@available` check is a compile error, and the linker warns about any object built for a newer system; both must stay at zero. In a universal build every test suite can also be run as Intel code under Rosetta, e.g. `ninja plist/test-x86_64`.
 

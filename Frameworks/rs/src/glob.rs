@@ -362,18 +362,21 @@ fn expand_seq(seq: &[Node], strings: &mut Vec<Vec<u8>>) {
     }
 }
 
-/// The last alternative is expanded on a copy and appended after the others.
-/// As in the original, an empty alternative that is not the first is dropped.
+/// Every alternative after the first is expanded on a copy of the strings so
+/// far and appended. As in the original, an empty alternative is dropped
+/// unless it is the first. (A loop, not recursion: a group may have any
+/// number of alternatives.)
 fn expand_alternatives(alternatives: &[Seq], strings: &mut Vec<Vec<u8>>) {
-    let Some((current, earlier)) = alternatives.split_last() else { return };
-    if !earlier.is_empty() && !current.is_empty() {
-        let mut tmp = if strings.len() < MAX_EXPANSIONS { strings.clone() } else { Vec::new() };
-        expand_seq(current, &mut tmp);
-        expand_alternatives(earlier, strings);
+    let Some((first, rest)) = alternatives.split_first() else { return };
+    let base = if rest.iter().any(|alt| !alt.is_empty()) && strings.len() < MAX_EXPANSIONS { strings.clone() } else { Vec::new() };
+    expand_seq(first, strings);
+    for alternative in rest.iter().filter(|alt| !alt.is_empty()) {
+        if strings.len() >= MAX_EXPANSIONS {
+            break;
+        }
+        let mut tmp = base.clone();
+        expand_seq(alternative, &mut tmp);
         strings.append(&mut tmp);
-    } else {
-        expand_alternatives(earlier, strings);
-        expand_seq(current, strings);
     }
 }
 
@@ -421,6 +424,60 @@ mod tests {
         assert_eq!(braces("{a}"), ["{a}"]);
         assert_eq!(braces("x{a,{b,c}}"), ["xa", "xb", "xc"]);
         assert_eq!(braces("\\{a,b\\}"), ["{a,b}"]);
+    }
+
+    /// The recursive formulation that was compared with the C++, kept to check the loop that replaced it.
+    fn expand_alternatives_recursive(alternatives: &[Seq], strings: &mut Vec<Vec<u8>>) {
+        let Some((current, earlier)) = alternatives.split_last() else { return };
+        if !earlier.is_empty() && !current.is_empty() {
+            let mut tmp = strings.clone();
+            expand_seq_recursive(current, &mut tmp);
+            expand_alternatives_recursive(earlier, strings);
+            strings.append(&mut tmp);
+        } else {
+            expand_alternatives_recursive(earlier, strings);
+            expand_seq_recursive(current, strings);
+        }
+    }
+
+    fn expand_seq_recursive(seq: &[Node], strings: &mut Vec<Vec<u8>>) {
+        for node in seq {
+            match node {
+                Node::Text(text) => strings.iter_mut().for_each(|s| s.extend_from_slice(text)),
+                Node::Group(alternatives) => expand_alternatives_recursive(alternatives, strings),
+                _ => {}
+            }
+        }
+    }
+
+    #[test]
+    fn loop_matches_recursive_expansion() {
+        // every string of up to 9 characters over the brace syntax
+        let alphabet: &[u8] = b"a{},\\";
+        let mut count = 0;
+        for len in 0..=9usize {
+            let total = alphabet.len().pow(len as u32);
+            for mut n in 0..total {
+                let mut glob = Vec::with_capacity(len);
+                for _ in 0..len {
+                    glob.push(alphabet[n % alphabet.len()]);
+                    n /= alphabet.len();
+                }
+                let mut parser = Parser::new(&glob, Flavor::Braces);
+                let seq = parser.parse_seq(b"", false);
+                let mut expected = vec![Vec::new()];
+                expand_seq_recursive(&seq, &mut expected);
+                assert_eq!(expand_braces(&glob), expected, "{:?}", String::from_utf8_lossy(&glob));
+                count += 1;
+            }
+        }
+        assert!(count > 2_000_000);
+    }
+
+    #[test]
+    fn many_alternatives() {
+        let glob = format!("{{{}}}", vec!["x"; 50_000].join(","));
+        assert_eq!(expand_braces(glob.as_bytes()).len(), 50_000);
     }
 
     #[test]

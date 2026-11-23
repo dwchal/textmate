@@ -3,7 +3,8 @@
 
 A gear, as in the fork's first icon, with a text cursor where the axle would
 be. Colours are the Opportunistic Labs palette. Run `./build_icon` afterwards
-to regenerate TextMate.icns and the PNGs used by the About window and README.
+to regenerate TextMate.icns and the PNGs used by the About window and README
+(docs/images/logo.png).
 """
 import math
 

@@ -234,3 +234,31 @@ void test_thai_script ()
 	i += buf[i].size();
 	OAK_ASSERT_EQ(i, buf.size());
 }
+
+void test_spelling_after_repair_in_slices ()
+{
+	// More text than one slice of the deferred spell check (16 KB), so it takes several run loop passes
+	std::string text;
+	size_t const lines = 2500;
+	for(size_t i = 0; i < lines; ++i)
+		text += "that ibs nice\n";
+
+	ng::buffer_t buf;
+	buf.set_grammar(TestGrammarItem);
+	buf.set_spelling_language("en");
+	buf.set_live_spelling(true);
+	buf.insert(0, text);
+	buf.bump_revision();
+	buf.wait_for_repair();
+
+	OAK_ASSERT_EQ(buf.misspellings(0, buf.size()).size(), 0); // nothing is checked while the caller is waiting
+
+	CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.01, false);
+	size_t const afterOnePass = buf.misspellings(0, buf.size()).size();
+	OAK_ASSERT_LT(0, afterOnePass);
+	OAK_ASSERT_LT(afterOnePass, 2 * lines);
+
+	for(size_t i = 0; i < 200 && buf.misspellings(0, buf.size()).size() < 2 * lines; ++i)
+		CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.05, false);
+	OAK_ASSERT_EQ(buf.misspellings(0, buf.size()).size(), 2 * lines);
+}

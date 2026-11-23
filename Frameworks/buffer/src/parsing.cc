@@ -164,27 +164,52 @@ namespace ng
 				_spelling_recheck_to   = std::max(_spelling_recheck_to, repairedTo);
 
 				if(!scheduled)
-				{
-					if(!_spelling_recheck_reference)
-						_spelling_recheck_reference = std::make_shared<bool>(true);
-					std::weak_ptr<bool> bufferRef = _spelling_recheck_reference;
-
-					CFRunLoopRef runLoop = CFRunLoopGetCurrent();
-					CFRunLoopPerformBlock(runLoop, kCFRunLoopCommonModes, ^{
-						if(bufferRef.lock())
-						{
-							size_t const from = std::min(_spelling_recheck_from, size());
-							size_t const to   = std::min(_spelling_recheck_to, size());
-							_spelling_recheck_from = SIZE_T_MAX;
-							_spelling_recheck_to   = 0;
-							if(from < to)
-								recheck_spelling(from, to);
-						}
-					});
-					CFRunLoopWakeUp(runLoop);
-				}
+					schedule_spelling_recheck();
 			}
 		}
+	}
+
+	// Spell checking runs at well under a megabyte per second, so the pending
+	// range is checked a slice at a time, one slice per pass of the run loop,
+	// rather than in one go that would freeze a large document for seconds.
+	void buffer_t::schedule_spelling_recheck ()
+	{
+		static size_t const kSliceSize = 16 * 1024;
+
+		if(!_spelling_recheck_reference)
+			_spelling_recheck_reference = std::make_shared<bool>(true);
+		std::weak_ptr<bool> bufferRef = _spelling_recheck_reference;
+
+		CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+		CFRunLoopPerformBlock(runLoop, kCFRunLoopCommonModes, ^{
+			if(!bufferRef.lock())
+				return;
+
+			size_t const from = std::min(_spelling_recheck_from, size());
+			size_t const to   = std::min(_spelling_recheck_to, size());
+			if(!_spelling || from >= to)
+			{
+				_spelling_recheck_from = SIZE_T_MAX;
+				_spelling_recheck_to   = 0;
+				return;
+			}
+
+			// whole lines, so that no word is split between two slices
+			size_t const sliceEnd = std::min(to, end(convert(std::min(from + kSliceSize, to)).line));
+			recheck_spelling(from, sliceEnd);
+
+			if(sliceEnd < to)
+			{
+				_spelling_recheck_from = sliceEnd;
+				schedule_spelling_recheck();
+			}
+			else
+			{
+				_spelling_recheck_from = SIZE_T_MAX;
+				_spelling_recheck_to   = 0;
+			}
+		});
+		CFRunLoopWakeUp(runLoop);
 	}
 
 } /* ng */
