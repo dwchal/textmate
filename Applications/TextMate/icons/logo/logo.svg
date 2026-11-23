@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b5a96"/>
+      <stop offset="0.55" stop-color="#0f3a63"/>
+      <stop offset="1" stop-color="#0b263f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#2aa9a6" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#2aa9a6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#bfe8e5"/>
+    </linearGradient>
+    <linearGradient id="cursor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9ff7ec"/>
+      <stop offset="1" stop-color="#3ecfc6"/>
+    </linearGradient>
+    <linearGradient id="hub" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b263f"/>
+      <stop offset="1" stop-color="#14456f"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#04121f" flood-opacity="0.45"/>
+    </filter>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#04121f" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- macOS icon shape: 824 pt rounded square on a 1024 pt canvas -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)" filter="url(#shadow)"/>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#sheen)"/>
+  <circle cx="512" cy="512" r="330" fill="url(#glow)"/>
+
+  <!-- gear: the round stroke softens every corner -->
+  <path d="M472.11,283.45 L481.42,213.56 A300,300 0 0 1 542.58,213.56 L551.89,283.45 A232,232 0 0 1 645.40,322.19 L645.40,322.19 L701.41,279.35 A300,300 0 0 1 744.65,322.59 L701.81,378.60 A232,232 0 0 1 740.55,472.11 L740.55,472.11 L810.44,481.42 A300,300 0 0 1 810.44,542.58 L740.55,551.89 A232,232 0 0 1 701.81,645.40 L701.81,645.40 L744.65,701.41 A300,300 0 0 1 701.41,744.65 L645.40,701.81 A232,232 0 0 1 551.89,740.55 L551.89,740.55 L542.58,810.44 A300,300 0 0 1 481.42,810.44 L472.11,740.55 A232,232 0 0 1 378.60,701.81 L378.60,701.81 L322.59,744.65 A300,300 0 0 1 279.35,701.41 L322.19,645.40 A232,232 0 0 1 283.45,551.89 L283.45,551.89 L213.56,542.58 A300,300 0 0 1 213.56,481.42 L283.45,472.11 A232,232 0 0 1 322.19,378.60 L322.19,378.60 L279.35,322.59 A300,300 0 0 1 322.59,279.35 L378.60,322.19 A232,232 0 0 1 472.11,283.45 Z M658,512 A146,146 0 1 0 366,512 A146,146 0 1 0 658,512 Z" fill="url(#gear)" stroke="url(#gear)" stroke-width="26" stroke-linejoin="round" filter="url(#soft)"/>
+
+  <!-- hub, and a text cursor in place of the axle -->
+  <circle cx="512" cy="512" r="133" fill="url(#hub)"/>
+  <g fill="url(#cursor)">
+    <rect x="495" y="416" width="34" height="192" rx="17"/>
+    <rect x="460" y="408" width="104" height="30" rx="15"/>
+    <rect x="460" y="586" width="104" height="30" rx="15"/>
+  </g>
+</svg>
