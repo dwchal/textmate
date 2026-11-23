@@ -153,7 +153,7 @@ static NSString* const OakTabItemPasteboardType = @"com.macromates.TextMate.tabI
 - (void)drawRect:(NSRect)aRect
 {
 	[_fillColor set];
-	[NSBezierPath fillRect:aRect];
+	[NSBezierPath fillRect:NSIntersectionRect(aRect, self.bounds)]; // views do not clip to their bounds since macOS 14
 }
 
 - (void)setFillColor:(NSColor*)color
