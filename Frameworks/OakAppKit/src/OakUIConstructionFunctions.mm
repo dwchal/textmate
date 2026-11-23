@@ -255,7 +255,7 @@ OakRolloverButton* OakCreateCloseButton (NSString* accessibilityLabel)
 	{
 		NSColor* color = value;
 		[color set];
-		NSRectFill(aRect);
+		NSRectFill(NSIntersectionRect(aRect, self.bounds)); // views do not clip to their bounds since macOS 14
 	}
 }
 @end
