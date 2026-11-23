@@ -51,3 +51,30 @@ pub unsafe extern "C" fn tm_text_rank(filter: *const u8, filter_len: usize, cand
         }
     }
 }
+
+/// Writes the regular expression for `glob` to `sink` and returns true, or
+/// returns false (writing nothing) if the glob is empty; see `glob.rs`.
+///
+/// # Safety
+/// `glob` must point to `len` readable bytes; `sink` must be a valid callback.
+#[no_mangle]
+pub unsafe extern "C" fn tm_glob_to_regexp(glob: *const u8, len: usize, match_dot_files: bool, sink: Sink, ctx: *mut c_void) -> bool {
+    match crate::glob::glob_to_regexp(bytes(glob, len), match_dot_files) {
+        Some(regexp) => {
+            emit(sink, ctx, &regexp);
+            true
+        }
+        None => false,
+    }
+}
+
+/// Calls `sink` once per brace expansion of `glob`, in order (also for empty strings).
+///
+/// # Safety
+/// `glob` must point to `len` readable bytes; `sink` must be a valid callback.
+#[no_mangle]
+pub unsafe extern "C" fn tm_glob_expand_braces(glob: *const u8, len: usize, sink: Sink, ctx: *mut c_void) {
+    for expansion in crate::glob::expand_braces(bytes(glob, len)) {
+        sink(ctx, expansion.as_ptr(), expansion.len());
+    }
+}

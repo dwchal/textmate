@@ -14,6 +14,9 @@ typedef void (*tm_rs_sink_t) (void* ctx, char const* bytes, size_t len);
 
 void tm_text_asciify (char const* str, size_t len, tm_rs_sink_t sink, void* ctx);
 
+bool tm_glob_to_regexp (char const* glob, size_t len, bool matchDotFiles, tm_rs_sink_t sink, void* ctx);
+void tm_glob_expand_braces (char const* glob, size_t len, tm_rs_sink_t sink, void* ctx); // sink is called once per expansion
+
 typedef void (*tm_rs_range_sink_t) (void* ctx, size_t from, size_t to);
 double tm_text_rank (char const* filter, size_t filterLen, char const* candidate, size_t candidateLen, tm_rs_range_sink_t ranges, void* ctx);
 

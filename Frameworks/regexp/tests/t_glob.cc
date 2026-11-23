@@ -282,3 +282,15 @@ void test_escape_glob ()
 	OAK_ASSERT_EQ(path::glob_t::escape("Movie [2015].mp4~backup"), "Movie \\[2015].mp4\\~backup");
 	OAK_ASSERT_EQ(path::glob_t::escape("Movie {***}.mp4"), "Movie \\{\\*\\*\\*}.mp4");
 }
+
+void test_glob_unbalanced_braces ()
+{
+	// The original parser tried every later brace again for each earlier one, so
+	// this took exponential time (about 40 unbalanced braces would hang).
+	std::string const braces(200, '{');
+	OAK_ASSERT(path::glob_t(braces + "*.txt").does_match(braces + "notes.txt"));
+	OAK_ASSERT(!path::glob_t(braces + "*.txt").does_match("notes.txt"));
+
+	std::vector<std::string> const expected = { braces };
+	OAK_ASSERT(path::expand_braces(braces) == expected);
+}
