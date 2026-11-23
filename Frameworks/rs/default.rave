@@ -1,0 +1,4 @@
+target "${dirname}" {
+	headers src/tm_rs.h
+	sources Cargo.toml
+}

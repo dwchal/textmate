@@ -1,4 +1,5 @@
 target "${dirname}" {
+	require rs
 	headers src/*.h
 	sources src/*.cc
 	tests tests/*.cc

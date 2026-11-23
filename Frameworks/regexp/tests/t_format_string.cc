@@ -9,6 +9,9 @@ void test_format_string ()
 	OAK_ASSERT_EQ(replace("æbleGRØD", ".+", "»${0:/asciify}«"),            "»aebleGROD«");
 	OAK_ASSERT_EQ(replace("æblegrød", ".+", "»${0:/capitalize}«"),         "»Æblegrød«");
 	OAK_ASSERT_EQ(replace("æblegrød", ".+", "»${0:/capitalize/asciify}«"), "»AEblegrod«");
+	// Punctuation, and text with no ASCII equivalent (these depended on the system’s iconv)
+	OAK_ASSERT_EQ(replace("Æblegrød… “naïve” — café", ".+", "${0:/asciify}"), "AEblegrod... \"naive\" - cafe");
+	OAK_ASSERT_EQ(replace("日本語 file", ".+", "${0:/asciify}"), "??? file");
 }
 
 void test_capitalize ()

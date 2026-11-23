@@ -1,0 +1,19 @@
+[package]
+name = "tm_rs"
+version = "0.1.0"
+edition = "2021"
+description = "TextMate’s Rust code: the one static library linked into the app and its tools"
+publish = false
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+# Scope selectors (Frameworks/scope); its C ABI is re-exported through this library.
+scope_rs = { path = "../scope/rust" }
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+panic = "abort"
+debug = false

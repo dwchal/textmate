@@ -6,7 +6,7 @@
 #include <oak/oak.h>
 #include <text/case.h>
 #include <text/utf8.h>
-#include <text/transcode.h>
+#include <rs/tm_rs.h>
 #include <text/encode.h>
 #include <text/format.h>
 #include <cf/cf.h>
@@ -158,12 +158,10 @@ struct expand_visitor : boost::static_visitor<void>
 			CFRelease(tmp);
 		}
 
-		text::transcode_t transcode("UTF-8", "ASCII//TRANSLIT");
-		if(!transcode)
-			return src; // error
-
+		// What remains (æ, ø, ß, dashes, quotes, …) is mapped by a fixed table:
+		// iconv’s //TRANSLIT gives different, and on current macOS broken, results.
 		std::string buffer;
-		transcode(transcode(src.data(), src.data() + src.size(), back_inserter(buffer)));
+		tm_text_asciify(src.data(), src.size(), &tm_rs::append_to_string, &buffer);
 		return buffer;
 	}
 

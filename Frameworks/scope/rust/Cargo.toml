@@ -6,7 +6,8 @@ description = "TextMate scope selector parser and matcher (Rust port of Framewor
 publish = false
 
 [lib]
-crate-type = ["staticlib", "rlib"]
+# Built into the app through Frameworks/rs (an executable can link only one Rust static library)
+crate-type = ["rlib"]
 
 [profile.release]
 opt-level = 3
