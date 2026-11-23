@@ -1,20 +1,59 @@
-# TextMate
+<p align="center">
+  <img src="docs/images/logo.png" width="160" height="160" alt="TextMate icon: a gear with a text cursor for an axle">
+</p>
 
-## Download
+<h1 align="center">TextMate</h1>
 
-You can [download TextMate from here](https://macromates.com/download).
+<p align="center">
+  <strong>The Mac text editor, tuned up by <a href="https://opportunisticlabs.com">Opportunistic Labs</a>.</strong><br>
+  Faster, partly rewritten in Rust, and built to run on Macs from 2017’s High Sierra to today, Intel or Apple silicon.
+</p>
 
-## Feedback
+<p align="center">
+  <a href="#whats-different">What’s different</a> ·
+  <a href="#building">Building</a> ·
+  <a href="#older-macos-and-intel">Older macOS and Intel</a> ·
+  <a href="PERFORMANCE.md">Performance</a>
+</p>
 
-You can use [the TextMate mailing list](https://lists.macromates.com/listinfo/textmate) or [#textmate][] IRC channel on [freenode.net][] for questions, comments, and bug reports.
+<p align="center">
+  <img src="docs/images/editor.png" width="820" alt="The TextMate editor showing C++ source with syntax highlighting and line numbers">
+</p>
 
-You can also [contact MacroMates](https://macromates.com/support).
+This is a fork of [TextMate](https://github.com/textmate/textmate), the open source editor by Allan Odgaard and [many contributors](https://github.com/textmate/textmate/graphs/contributors). It keeps everything that makes TextMate what it is (bundles, snippets, scopes, `.tm_properties`) and adds the changes below. It is maintained independently of MacroMates.
 
-Before you submit a bug report please read the [writing bug reports](https://github.com/textmate/textmate/wiki/writing-bug-reports) instructions.
+## What’s different
 
-## Screenshot
+| | |
+|---|---|
+| **Markdown preview, built in** | <kbd>⌃⌥⌘P</kbd> opens a live preview beside the document: tables, Mermaid diagrams, Dark Mode, and it follows the section you are editing. No Ruby required. |
+| **Language servers** | Errors and warnings from a language server such as `clangd` in the gutter, and its suggestions first in <kbd>⎋</kbd> completion. Off until you enable it per file type. |
+| **Faster** | Find in Folder searches files in parallel (about 3×), syntax parsing is 12–19% faster, fuzzy matching in the choosers is about 2× faster, and launch no longer waits for the bundle index. |
+| **Rust inside** | Scope selectors, fuzzy matching, glob parsing and ASCII transliteration are written in Rust. Each port was compared with the C++ it replaced on millions of inputs, on both architectures, before the C++ was deleted. |
+| **Old Macs welcome** | One app for Intel and Apple silicon, built for macOS 10.13 and later. |
+| **Bugs fixed** | Line numbers and bookmarks were invisible on macOS 14 and later; text parsed right after opening was never spell-checked; names like `.gitignore` broke sorting in the file chooser; and [more](Applications/TextMate/about/Changes.md). All 27 test suites pass on both architectures. |
 
-![textmate](https://raw.github.com/textmate/textmate/gh-pages/images/screenshot.png)
+<p align="center">
+  <img src="docs/images/markdown-preview.png" width="400" alt="Markdown preview with a table and a Mermaid flow chart">
+  &nbsp;&nbsp;
+  <img src="docs/images/about.png" width="400" alt="The About window, showing version and build details">
+</p>
+<p align="center"><sub>The Markdown preview and the About window. Images are rendered from the app’s own views.</sub></p>
+
+### Enabling a language server
+
+Add this to a `.tm_properties` file in your project or home folder:
+
+```
+[ source.c, source.c++, source.objc, source.objc++ ]
+languageServer = "xcrun clangd"
+```
+
+## Getting it
+
+There are no prebuilt downloads yet: build it from source as described below. Upstream TextMate is available from [macromates.com](https://macromates.com/download).
+
+Questions about this fork go to [Opportunistic Labs](https://opportunisticlabs.com), not to MacroMates.
 
 # Building
 
@@ -28,6 +67,7 @@ To build TextMate, you need the following:
  * [ninja][]            — build system similar to `make`
  * [ragel][]            — state machine compiler
  * [sparsehash][]       — a cache friendly `hash_map`
+ * [Rust][]             — for the parts written in Rust (`cargo` must be in your `PATH` or `~/.cargo/bin`)
 
 All this can be installed using either [Homebrew][] or [MacPorts][]:
 
@@ -42,7 +82,7 @@ sudo port install boost capnproto multimarkdown ninja ragel sparsehash
 After installing dependencies, make sure you have a full checkout (including submodules) and then run `./configure` followed by `ninja`, for example:
 
 ```sh
-git clone --recursive https://github.com/textmate/textmate.git
+git clone --recursive https://github.com/dwchal/textmate.git
 cd textmate
 ./configure && ninja TextMate/run
 ```
@@ -123,7 +163,7 @@ Or simply delete `~/build/TextMate`.
 
 The source for TextMate is released under the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-TextMate is a trademark of Allan Odgaard.
+TextMate is a trademark of Allan Odgaard. This fork is maintained by [Opportunistic Labs](https://opportunisticlabs.com) and is not affiliated with MacroMates.
 
 [boost]:         http://www.boost.org/
 [ninja]:         https://ninja-build.org/
@@ -134,5 +174,4 @@ TextMate is a trademark of Allan Odgaard.
 [Homebrew]:      http://brew.sh/
 [NinjaBundle]:   https://github.com/textmate/ninja.tmbundle
 [sparsehash]:    https://code.google.com/p/sparsehash/
-[#textmate]:     irc://irc.freenode.net/#textmate
-[freenode.net]:  http://freenode.net/
+[Rust]:          https://rustup.rs/
