@@ -41,7 +41,7 @@ This copy of TextMate is built by [Opportunistic Labs](https://opportunisticlabs
 * The server’s suggestions come first in completion (⎋), including after `.`, `->`, and `::`.
 * Off until enabled per file type in `.tm_properties`, for example:
 
-		[ source.c, source.c++, source.objc, source.objc++ ]
+		[ "source.c, source.c++, source.objc, source.objc++" ]
 		languageServer = "xcrun clangd"
 
 ### Faster

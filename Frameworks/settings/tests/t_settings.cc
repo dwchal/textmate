@@ -69,3 +69,18 @@ void test_coercion ()
 	OAK_ASSERT_EQ(s.get("string_2",  0.0),   42.0);
 	OAK_ASSERT_EQ(s.get("string_2",  "0"), "42.0");
 }
+
+void test_scope_selector_sections ()
+{
+	// A selector with spaces or commas must be quoted (or split with “;”),
+	// otherwise the line is not a section header and what follows applies to everything.
+	test::jail_t jail;
+	jail.set_content("quoted/.tm_properties", "[ \"source.c, source.c++\" ]\ntestSetting = scoped\n");
+	OAK_ASSERT_EQ(settings_for_path(jail.path("quoted/file"), "source.c").get("testSetting", "none"), "scoped");
+	OAK_ASSERT_EQ(settings_for_path(jail.path("quoted/file"), "source.c++").get("testSetting", "none"), "scoped");
+	OAK_ASSERT_EQ(settings_for_path(jail.path("quoted/file"), "text.html.markdown").get("testSetting", "none"), "none");
+
+	jail.set_content("split/.tm_properties", "[ source.c; source.c++ ]\ntestSetting = scoped\n");
+	OAK_ASSERT_EQ(settings_for_path(jail.path("split/file"), "source.c++").get("testSetting", "none"), "scoped");
+	OAK_ASSERT_EQ(settings_for_path(jail.path("split/file"), "text.html.markdown").get("testSetting", "none"), "none");
+}

@@ -17,6 +17,8 @@ Title: Release Notes
 * A bundle folder created while TextMate was not running is picked up at launch.
 * The release notes open after an update again.
 * New app icon.
+* After closing a very large file, TextMate gives the freed memory back to the system (it used to stay at several times the file’s size).
+* The language server example in the documentation enabled the server for every file type. A scope list in `.tm_properties` must be quoted: `[ "source.c, source.c++" ]`.
 
 ## 2026-11-22 — Opportunistic Labs build
 

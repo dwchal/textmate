@@ -54,7 +54,7 @@ void test_clangd_diagnostics_and_completion ()
 	path::make_dir(dir);
 	path::set_content(path::join(dir, "compile_flags.txt"), "-std=c++17\n");
 	// The form documented in LSPManager.h: scoped to file types, server found via xcrun.
-	path::set_content(path::join(dir, ".tm_properties"), "[ source.c, source.c++, source.objc, source.objc++ ]\nlanguageServer = \"xcrun clangd --log=error\"\n");
+	path::set_content(path::join(dir, ".tm_properties"), "[ \"source.c, source.c++, source.objc, source.objc++\" ]\nlanguageServer = \"xcrun clangd --log=error\"\n");
 
 	std::string const source =
 		"struct Widget { int alpha; int beta; };\n"

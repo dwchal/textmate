@@ -4,7 +4,7 @@
 //
 // Off unless configured. Enable per file type in .tm_properties, e.g.
 //
-//     [ source.c, source.c++, source.objc, source.objc++ ]
+//     [ "source.c, source.c++, source.objc, source.objc++" ]
 //     languageServer = "xcrun clangd"
 //
 // Diagnostics appear as gutter marks (click for the message); completions

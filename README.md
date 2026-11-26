@@ -45,7 +45,7 @@ This is a fork of [TextMate](https://github.com/textmate/textmate), the open sou
 Add this to a `.tm_properties` file in your project or home folder:
 
 ```
-[ source.c, source.c++, source.objc, source.objc++ ]
+[ "source.c, source.c++, source.objc, source.objc++" ]
 languageServer = "xcrun clangd"
 ```
 

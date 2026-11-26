@@ -1,3 +1,4 @@
+#import <malloc/malloc.h>
 #import "OakDocument Private.h"
 #import "OakDocumentController.h"
 #import "OakDocumentEditor.h"
@@ -1150,10 +1151,26 @@ static void* kDocumentEditedObserverContext = &kDocumentEditedObserverContext;
 	if(!_buffer)
 		return;
 
+	size_t const size = _buffer->size();
+
 	_buffer->remove_callback(_callback);
 	delete _callback;
 	_buffer.reset();
 	_snapshot.reset();
+
+	// The allocator keeps freed regions around, so after closing a large file the
+	// app’s footprint stays several times the file’s size until the system is
+	// short on memory. Hand the empty regions back once the views have let go.
+	if(size > 8 * 1024 * 1024)
+	{
+		// Layout, undo and parser data are released a little later, some of it on other threads
+		for(int64_t delay : { 2, 10, 30 })
+		{
+			dispatch_after(dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+				malloc_zone_pressure_relief(nullptr, 0);
+			});
+		}
+	}
 }
 
 - (NSImage*)icon
