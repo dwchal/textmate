@@ -4,7 +4,7 @@ Title: Release Notes
 
 ## 2026-11-26 — Opportunistic Labs build
 
-* Formatted Markdown: View → Show Formatted Markdown (⌥⌘E), or the Source/Formatted button in the status bar, shows a Markdown document with headings, bold, italic, strikethrough, inline code and links styled and their markers hidden. It is the same editor and the same text, so you edit in either view and switching never changes the file. Markers reappear while the caret is in that element. Tables, images and diagrams are still shown as source; use the preview (⌃⌥⌘P) for those.
+* Formatted Markdown: View → Show Formatted Markdown (⌥⌘E), or the Source/Formatted button in the status bar, shows a Markdown document with headings, bold, italic, strikethrough, inline code and links styled and their markers hidden. It is the same editor and the same text, so you edit in either view and switching never changes the file. Markers reappear while the caret is in that element. This is a first version: text keeps the editor’s font, and list markers, block quotes, code blocks, rules, task boxes, tables, images and diagrams are still shown as source (use the preview, ⌃⌥⌘P, for a rendered page). The choice applies to all Markdown documents, and documents over 1 MB stay in source view.
 
 ## 2026-11-23 — Opportunistic Labs build
 

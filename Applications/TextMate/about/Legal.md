@@ -26,7 +26,9 @@ Parts of TextMate are written in Rust and include its standard library. Copyrigh
 
 ### pulldown-cmark
 
-Markdown parser used by the formatted Markdown view, with its dependencies bitflags, memchr and unicase. Copyright Google LLC, Raph Levien, Marcus Klaas de Vries and the respective contributors. [MIT license](https://github.com/pulldown-cmark/pulldown-cmark/blob/master/LICENSE) (bitflags and unicase: MIT or Apache License 2.0; memchr: MIT or Unlicense). <https://github.com/pulldown-cmark/pulldown-cmark>
+Markdown parser used by the formatted Markdown view. Copyright 2015 Google Inc. [MIT license](https://github.com/pulldown-cmark/pulldown-cmark/blob/master/LICENSE). <https://github.com/pulldown-cmark/pulldown-cmark>
+
+It is built with these libraries: [bitflags](https://github.com/bitflags/bitflags), copyright 2014 The Rust Project Developers, MIT or Apache License 2.0; [memchr](https://github.com/BurntSushi/memchr), copyright 2015 Andrew Gallant, MIT or Unlicense; [unicase](https://github.com/seanmonstar/unicase), copyright 2014–2026 Sean McArthur, MIT or Apache License 2.0.
 
 ## Downloaded on first use
 

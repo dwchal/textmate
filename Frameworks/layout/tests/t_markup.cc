@@ -17,10 +17,9 @@ namespace
 
 	struct fixture_t
 	{
-		fixture_t (std::string const& text, bool softWrap = false) : layout(buffer, test_theme(), "Menlo", 12, softWrap, false, softWrap ? 40 : 0)
+		fixture_t (std::string const& text, bool softWrap = false) : layout((buffer.insert(0, text), buffer), test_theme(), "Menlo", 12, softWrap, false, softWrap ? 40 : 0)
 		{
 			layout.set_viewport_size(CGSizeMake(400, 400));
-			buffer.insert(0, text);
 			refresh();
 		}
 
@@ -230,11 +229,57 @@ void test_incremental_updates_match_a_fresh_layout ()
 			if(pick(4) == 0)
 			{
 				f.format(selection);
+				// Fold some lines the way the editor does (end of one line to the end of a later one),
+				// which hides markers and parts of elements as well, then unfold again.
+				size_t const lines = f.buffer.lines();
+				if(lines > 2 && pick(2) == 0)
+				{
+					size_t const first = pick(lines - 1), last = std::min(lines - 1, first + 1 + pick(3));
+					size_t const foldFrom = f.buffer.eol(first), foldTo = f.buffer.eol(last);
+					if(foldFrom < foldTo)
+					{
+						f.layout.fold(foldFrom, foldTo);
+						f.geometry();
+						f.select(caret(pick(2) ? foldFrom : s1));
+						f.geometry();
+						f.select(selection);
+						f.layout.unfold(foldFrom, foldTo);
+					}
+				}
+
 				fixture_t fresh(f.buffer.substr(0, f.buffer.size()), softWrap);
 				fresh.format(selection);
 				OAK_ASSERT(f.layout.concealed() == fresh.layout.concealed());
 				OAK_ASSERT(same(f.geometry(), fresh.geometry()));
 			}
 		}
+	}
+}
+
+void test_formatting_cost_of_a_large_document ()
+{
+	if(!getenv("TM_TEST_TIMING"))
+		return;
+
+	std::string const paragraph = "## Heading *x*\n\nSome **bold** text with `code`, a [link](https://example.com) and ~~more~~ words to fill the line.\n\n- item one\n- item *two*\n\n";
+	for(size_t kb : { 50, 200, 1000 })
+	{
+		std::string text;
+		while(text.size() < kb * 1024)
+			text += paragraph;
+
+		fixture_t f(text, true);
+		f.format(caret(0));
+
+		size_t const middle = f.buffer.begin(f.buffer.convert(text.size() / 2).line) + 5;
+		CFAbsoluteTime const start = CFAbsoluteTimeGetCurrent();
+		size_t const n = 20;
+		for(size_t i = 0; i < n; ++i)
+		{
+			f.buffer.insert(middle + i, "x");
+			f.layout.set_markup(ng::markdown_spans(f.buffer.substr(0, f.buffer.size())), caret(middle + i + 1));
+			f.layout.update_metrics(CGRectMake(0, 0, 800, 600));
+		}
+		fprintf(stderr, "%zu KB: %.1f ms per keystroke\n", kb, 1000 * (CFAbsoluteTimeGetCurrent() - start) / n);
 	}
 }

@@ -26,7 +26,7 @@ This is a fork of [TextMate](https://github.com/textmate/textmate), the open sou
 
 | | |
 |---|---|
-| **Formatted Markdown editing** | <kbd>⌥⌘E</kbd> switches a Markdown document between its source and a formatted view in the same editor, Obsidian style: headings, emphasis, code and links are styled and their markers hidden until the caret reaches them. You edit in either view and the file’s text is never rewritten. |
+| **Formatted Markdown editing** | <kbd>⌥⌘E</kbd> switches a Markdown document between its source and a formatted view in the same editor, Obsidian style: headings, emphasis, code and links are styled and their markers hidden until the caret reaches them. You edit in either view and the file’s text is never rewritten. A first version: lists, block quotes, code blocks, tables and images are still shown as source. |
 | **Markdown preview, built in** | <kbd>⌃⌥⌘P</kbd> opens a live preview beside the document: tables, Mermaid diagrams, Dark Mode, and it follows the section you are editing. No Ruby required. |
 | **Language servers** | Errors and warnings from a language server such as `clangd` in the gutter, and its suggestions first in <kbd>⎋</kbd> completion. Off until you enable it per file type. |
 | **Faster** | Find in Folder searches files in parallel (about 3×), syntax parsing is 12–19% faster, fuzzy matching in the choosers is about 2× faster, and launch no longer waits for the bundle index. |

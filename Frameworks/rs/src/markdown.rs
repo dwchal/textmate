@@ -38,8 +38,9 @@ pub struct Span {
     pub owner: (usize, usize),
 }
 
-/// Documents larger than this are left unformatted.
-pub const MAX_LEN: usize = 2 * 1024 * 1024;
+/// Documents larger than this are left unformatted: the editor analyses and
+/// re-styles the whole document after every edit, which takes about 40 ms per MB.
+pub const MAX_LEN: usize = 1024 * 1024;
 
 struct Frame {
     tag: FrameTag,
