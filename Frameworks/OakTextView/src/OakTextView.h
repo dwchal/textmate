@@ -7,6 +7,7 @@
 extern int32_t const NSWrapColumnWindowWidth;
 extern int32_t const NSWrapColumnAskUser;
 extern NSString* const kUserDefaultsWrapColumnPresetsKey;
+extern NSString* const kUserDefaultsFormattedMarkdownKey;
 
 @class OakDocument;
 
@@ -51,6 +52,10 @@ enum OTVFontSmoothing : NSUInteger
 @property (nonatomic, readonly) NSString*                   symbol;
 
 @property (nonatomic, getter = isRecordingMacro) BOOL       recordingMacro;
+@property (nonatomic, readonly) BOOL                        isMarkdownDocument;
+@property (nonatomic, readonly, getter = isFormattedMarkdown) BOOL formattedMarkdown;
+- (IBAction)toggleFormattedMarkdown:(id)sender;
+- (void)fileTypeDidChange; // formatted view follows the document becoming (or no longer being) Markdown
 
 - (GVLineRecord)lineRecordForPosition:(CGFloat)yPos;
 - (GVLineRecord)lineFragmentForLine:(NSUInteger)aLine column:(NSUInteger)aColumn;

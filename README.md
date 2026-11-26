@@ -26,12 +26,18 @@ This is a fork of [TextMate](https://github.com/textmate/textmate), the open sou
 
 | | |
 |---|---|
+| **Formatted Markdown editing** | <kbd>⌥⌘E</kbd> switches a Markdown document between its source and a formatted view in the same editor, Obsidian style: headings, emphasis, code and links are styled and their markers hidden until the caret reaches them. You edit in either view and the file’s text is never rewritten. |
 | **Markdown preview, built in** | <kbd>⌃⌥⌘P</kbd> opens a live preview beside the document: tables, Mermaid diagrams, Dark Mode, and it follows the section you are editing. No Ruby required. |
 | **Language servers** | Errors and warnings from a language server such as `clangd` in the gutter, and its suggestions first in <kbd>⎋</kbd> completion. Off until you enable it per file type. |
 | **Faster** | Find in Folder searches files in parallel (about 3×), syntax parsing is 12–19% faster, fuzzy matching in the choosers is about 2× faster, and launch no longer waits for the bundle index. |
-| **Rust inside** | Scope selectors, fuzzy matching, glob parsing and ASCII transliteration are written in Rust. Each port was compared with the C++ it replaced on millions of inputs, on both architectures, before the C++ was deleted. |
+| **Rust inside** | Scope selectors, fuzzy matching, glob parsing, ASCII transliteration and the Markdown analysis behind the formatted view are written in Rust. Each port was compared with the C++ it replaced on millions of inputs, on both architectures, before the C++ was deleted. |
 | **Old Macs welcome** | One app for Intel and Apple silicon, built for macOS 10.13 and later. It has so far only been run on macOS 27; see [below](#older-macos-and-intel). |
 | **Bugs fixed** | Line numbers and bookmarks were invisible on macOS 14 and later; text parsed right after opening was never spell-checked; names like `.gitignore` broke sorting in the file chooser; and [more](Applications/TextMate/about/Changes.md). All 27 test suites pass on both architectures. |
+
+<p align="center">
+  <img src="docs/images/markdown-formatted.png" width="720" alt="A Markdown document in the formatted view: styled headings, bold, italic, code and a link, with the markers of the element being edited visible">
+</p>
+<p align="center"><sub>Formatted Markdown: the caret is after <code>**new**</code>, so its markers show; everything else is formatted.</sub></p>
 
 <p align="center">
   <img src="docs/images/markdown-preview.png" width="400" alt="Markdown preview with a table and a Mermaid flow chart">
@@ -67,7 +73,7 @@ To build TextMate, you need the following:
  * [ninja][]            — build system similar to `make`
  * [ragel][]            — state machine compiler
  * [sparsehash][]       — a cache friendly `hash_map`
- * [Rust][]             — for the parts written in Rust (`cargo` must be in your `PATH` or `~/.cargo/bin`)
+ * [Rust][]             — for the parts written in Rust (`cargo` must be in your `PATH` or `~/.cargo/bin`; the first build downloads the `pulldown-cmark` crate from crates.io)
 
 All this can be installed using either [Homebrew][] or [MacPorts][]:
 

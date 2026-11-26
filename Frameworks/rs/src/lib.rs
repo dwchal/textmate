@@ -12,6 +12,7 @@
 pub mod asciify;
 pub mod ffi;
 pub mod glob;
+pub mod markdown;
 pub mod rank;
 
 // Keep the scope selector C ABI (tm_scope_selector_*) in the static library.

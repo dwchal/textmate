@@ -78,3 +78,19 @@ pub unsafe extern "C" fn tm_glob_expand_braces(glob: *const u8, len: usize, sink
         sink(ctx, expansion.as_ptr(), expansion.len());
     }
 }
+
+/// Receives one Markdown span: `kind` is a `markdown::Kind` value, `from..to`
+/// the bytes it applies to and `owner_from..owner_to` the element it is part of.
+pub type MarkdownSink = unsafe extern "C" fn(ctx: *mut c_void, kind: u32, from: usize, to: usize, owner_from: usize, owner_to: usize);
+
+/// Reports the styled and hideable ranges of a Markdown document, ordered by
+/// start offset; see `markdown.rs`.
+///
+/// # Safety
+/// `str` must point to `len` readable bytes; `sink` must be a valid callback.
+#[no_mangle]
+pub unsafe extern "C" fn tm_markdown_spans(str: *const u8, len: usize, sink: MarkdownSink, ctx: *mut c_void) {
+    for span in crate::markdown::spans(bytes(str, len)) {
+        sink(ctx, span.kind as u32, span.from, span.to, span.owner.0, span.owner.1);
+    }
+}

@@ -99,7 +99,7 @@ namespace ng
 		_line.reset();
 	}
 
-	void paragraph_t::node_t::layout (CGFloat x, size_t tabSize, theme_ptr const& theme, bool softWrap, size_t wrapColumn, ct::metrics_t const& metrics, ng::buffer_t const& buffer, size_t bufferOffset, std::string const& fillStr)
+	void paragraph_t::node_t::layout (CGFloat x, size_t tabSize, theme_ptr const& theme, bool softWrap, size_t wrapColumn, ct::metrics_t const& metrics, ng::buffer_t const& buffer, size_t bufferOffset, std::string const& fillStr, markup_t const* markup)
 	{
 		if(_line)
 			return;
@@ -108,7 +108,10 @@ namespace ng
 		{
 			case kNodeTypeText:
 			{
-				_line = std::make_shared<ct::line_t>(buffer.substr(bufferOffset, bufferOffset + _length), buffer.scopes(bufferOffset, bufferOffset + _length), theme, tabSize, metrics, nullptr);
+				std::map<size_t, scope::scope_t> scopes = buffer.scopes(bufferOffset, bufferOffset + _length);
+				if(markup)
+					markup->apply(scopes, bufferOffset, bufferOffset + _length);
+				_line = std::make_shared<ct::line_t>(buffer.substr(bufferOffset, bufferOffset + _length), scopes, theme, tabSize, metrics, nullptr);
 			}
 			break;
 
@@ -123,6 +126,12 @@ namespace ng
 			case kNodeTypeFolding:
 			{
 				_width = round(metrics.cap_height() * kFoldingDotsRatio);
+			}
+			break;
+
+			case kNodeTypeConcealed:
+			{
+				_width = 0;
 			}
 			break;
 
@@ -157,7 +166,7 @@ namespace ng
 		if(_line)
 			_line->draw_background(CGPointMake(anchor.x, anchor.y), lineHeight, context, isFlipped, backgroundColor);
 
-		if(_type != kNodeTypeText)
+		if(_type != kNodeTypeText && _type != kNodeTypeConcealed)
 		{
 			scope::scope_t scope = _type == kNodeTypeSoftBreak ? buffer.scope(bufferOffset).left : buffer.scope(bufferOffset).right;
 			switch(_type)
@@ -181,6 +190,9 @@ namespace ng
 	{
 		if(_line)
 			_line->draw_foreground(CGPointMake(anchor.x, anchor.y + baseline), context, isFlipped, misspelled, theme);
+
+		if(_type == kNodeTypeConcealed)
+			return;
 
 		if(_type != kNodeTypeNewline || context.newline().size())
 		{
@@ -268,6 +280,12 @@ namespace ng
 		_dirty = true;
 	}
 
+	void paragraph_t::insert_concealed (size_t pos, size_t len, ng::buffer_t const& buffer, size_t bufferOffset)
+	{
+		_nodes.insert(iterator_at(pos - bufferOffset), node_t(kNodeTypeConcealed, len));
+		_dirty = true;
+	}
+
 	void paragraph_t::erase (size_t from, size_t to, ng::buffer_t const& buffer, size_t bufferOffset)
 	{
 		ASSERT_LE(bufferOffset, from); ASSERT_LE(to, bufferOffset + length());
@@ -311,7 +329,7 @@ namespace ng
 		_dirty = true;
 	}
 
-	bool paragraph_t::layout (theme_ptr const& theme, bool softWrap, size_t wrapColumn, ct::metrics_t const& metrics, CGRect visibleRect, ng::buffer_t const& buffer, size_t bufferOffset)
+	bool paragraph_t::layout (theme_ptr const& theme, bool softWrap, size_t wrapColumn, ct::metrics_t const& metrics, CGRect visibleRect, ng::buffer_t const& buffer, size_t bufferOffset, markup_t const* markup)
 	{
 		if(!_dirty)
 			return false;
@@ -335,6 +353,37 @@ namespace ng
 
 			std::string str = buffer.substr(bufferOffset, bufferOffset + length());
 			ASSERT(utf8::is_valid(str.begin(), str.end()));
+
+			// Hidden markers take no room: wrap the text that is actually shown,
+			// then map the break positions back (‘hidden’ holds from → length).
+			std::vector< std::pair<size_t, size_t> > hidden;
+			{
+				size_t offset = 0;
+				for(auto const& node : _nodes)
+				{
+					if(node.type() == kNodeTypeConcealed)
+						hidden.emplace_back(offset, node.length());
+					offset += node.length();
+				}
+			}
+
+			if(!hidden.empty())
+			{
+				std::string shown;
+				size_t offset = 0;
+				for(auto const& pair : hidden)
+				{
+					shown.append(str, offset, pair.first - offset);
+					offset = pair.first + pair.second;
+				}
+				shown.append(str, offset, std::string::npos);
+				str.swap(shown);
+			}
+
+			// Larger text fits fewer columns
+			double const scale = markup ? markup->heading_scale(bufferOffset, bufferOffset + length()) : 1;
+			if(scale > 1 && wrapColumn > 0)
+				wrapColumn = std::max<size_t>(10, floor(wrapColumn / scale));
 
 			bundles::item_ptr indentedSoftWrapItem;
 			scope::context_t scope(buffer.scope(bufferOffset, false).right, buffer.scope(bufferOffset + length(), false).left);
@@ -364,15 +413,22 @@ namespace ng
 				}
 			}
 
-			for(auto const& offset : text::soft_breaks(str, wrapColumn, tabSize, fillStrWidth))
+			for(size_t offset : text::soft_breaks(str, wrapColumn, tabSize, fillStrWidth))
+			{
+				for(auto const& pair : hidden)
+				{
+					if(pair.first < offset)
+						offset += pair.second;
+				}
 				_nodes.insert(iterator_at(offset), node_t(kNodeTypeSoftBreak, 0, fillStrWidth * metrics.column_width()));
+			}
 		}
 
 		CGFloat x = 0;
 		size_t i = bufferOffset;
 		for(auto& node : _nodes)
 		{
-			node.layout(x, tabSize, theme, softWrap, wrapColumn, metrics, buffer, i, fillStr);
+			node.layout(x, tabSize, theme, softWrap, wrapColumn, metrics, buffer, i, fillStr, markup);
 			x += node.width();
 			i += node.length();
 		}
@@ -453,10 +509,10 @@ namespace ng
 				return node;
 			else if(from < i && i < from + node->length())
 			{
-				ASSERT_EQ(node->type(), kNodeTypeText);
+				node_type_t const type = node->type();
 				size_t len = node->length() - (i - from);
 				node->erase(i - from, node->length());
-				return _nodes.insert(++node, node_t(kNodeTypeText, len));
+				return _nodes.insert(++node, node_t(type, len));
 			}
 			from += node->length();
 		}
@@ -697,7 +753,7 @@ namespace ng
 		size_t i = bufferOffset;
 		for(auto const& node : _nodes)
 		{
-			if(i < index && index < i + node.length() && node.type() == kNodeTypeFolding)
+			if(i < index && index < i + node.length() && (node.type() == kNodeTypeFolding || node.type() == kNodeTypeConcealed))
 				return i;
 			i += node.length();
 		}
@@ -713,7 +769,7 @@ namespace ng
 		size_t i = bufferOffset;
 		for(auto const& node : _nodes)
 		{
-			if(i < index && index < i + node.length() && node.type() == kNodeTypeFolding)
+			if(i < index && index < i + node.length() && (node.type() == kNodeTypeFolding || node.type() == kNodeTypeConcealed))
 				return i + node.length();
 			i += node.length();
 		}
@@ -774,6 +830,90 @@ namespace ng
 				offset += node->length();
 			}
 		}
+	}
+
+	// ============
+	// = markup_t =
+	// ============
+
+	static char const* markup_scope (unsigned kind)
+	{
+		switch(kind)
+		{
+			case 1:  return "markup.formatted.heading.1";
+			case 2:  return "markup.formatted.heading.2";
+			case 3:  return "markup.formatted.heading.3";
+			case 4:  return "markup.formatted.heading.4";
+			case 5:  return "markup.formatted.heading.5";
+			case 6:  return "markup.formatted.heading.6";
+			case 7:  return "markup.formatted.bold";
+			case 8:  return "markup.formatted.italic";
+			case 9:  return "markup.formatted.strikethrough";
+			case 10: return "markup.formatted.code";
+			case 11: return "markup.formatted.link";
+		}
+		return nullptr;
+	}
+
+	static std::vector<markup_t::span_t>::const_iterator first_style_near (markup_t const& markup, size_t from)
+	{
+		size_t const start = from > markup.longest_style ? from - markup.longest_style : 0;
+		return std::lower_bound(markup.styles.begin(), markup.styles.end(), start, [](markup_t::span_t const& span, size_t offset){ return span.from < offset; });
+	}
+
+	void markup_t::apply (std::map<size_t, scope::scope_t>& scopes, size_t from, size_t to) const
+	{
+		if(styles.empty() || scopes.empty() || from >= to)
+			return;
+
+		std::vector<span_t const*> covering;
+		for(auto it = first_style_near(*this, from); it != styles.end() && it->from < to; ++it)
+		{
+			if(from < it->to && markup_scope(it->kind))
+				covering.push_back(&*it);
+		}
+
+		if(covering.empty())
+			return;
+
+		std::set<size_t> cuts;
+		for(auto const& pair : scopes)
+			cuts.insert(pair.first);
+		for(auto span : covering)
+		{
+			cuts.insert(std::max(span->from, from) - from);
+			if(span->to < to)
+				cuts.insert(span->to - from);
+		}
+
+		std::map<size_t, scope::scope_t> res;
+		for(size_t cut : cuts)
+		{
+			auto base = scopes.upper_bound(cut);
+			if(base == scopes.begin())
+				continue;
+
+			scope::scope_t scope = (--base)->second;
+			for(auto span : covering)
+			{
+				if(span->from <= from + cut && from + cut < span->to)
+					scope.push_scope(markup_scope(span->kind));
+			}
+			res.emplace(cut, scope);
+		}
+		scopes.swap(res);
+	}
+
+	double markup_t::heading_scale (size_t from, size_t to) const
+	{
+		static double const scales[] = { 1, 1.6, 1.4, 1.2, 1.1, 1, 1 };
+		double res = 1;
+		for(auto it = first_style_near(*this, from); it != styles.end() && it->from < to; ++it)
+		{
+			if(from < it->to && 1 <= it->kind && it->kind <= 6)
+				res = std::max(res, scales[it->kind]);
+		}
+		return res;
 	}
 
 	// ========

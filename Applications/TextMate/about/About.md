@@ -28,6 +28,12 @@ CSS: css/about.css
 
 This copy of TextMate is built by [Opportunistic Labs](https://opportunisticlabs.com) from [github.com/dwchal/textmate](https://github.com/dwchal/textmate), a fork of the open source [TextMate](https://github.com/textmate/textmate) with these additions:
 
+### Formatted Markdown
+
+* **Edit the formatted text.** View → Show Formatted Markdown (<kbd class="keyEquivalent">⌥⌘E</kbd>), or the Source/Formatted button in the status bar, switches a Markdown document between its source and a formatted view in the same editor.
+* **Same text, both ways.** Headings, bold, italic, strikethrough, inline code and links are styled and their markers hidden until the caret is in them. Switching views never changes the file.
+* Tables, images and diagrams stay as source here; the preview below renders them.
+
 ### Markdown preview
 
 * **Built in, no Ruby required.** Bundles → Markdown → Show Preview (⌃⌥⌘P) renders with MultiMarkdown when installed, including tables.

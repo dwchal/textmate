@@ -401,6 +401,40 @@ styles_t const& theme_t::styles_for_scope (scope::scope_t const& scope) const
 		for(auto const& it : ordering)
 			base += it.second;
 
+		// Formatted Markdown (the layout adds these scopes, see markup_t): the
+		// markers are hidden, so the text must look the part with any theme.
+		static struct { scope::selector_t selector; double size; bool_t bold, italic, underlined, strikethrough; bool tint; } const formatted[] =
+		{
+			{ "markup.formatted.heading.1",     1.6, bool_true,  bool_unset, bool_unset, bool_unset, false },
+			{ "markup.formatted.heading.2",     1.4, bool_true,  bool_unset, bool_unset, bool_unset, false },
+			{ "markup.formatted.heading.3",     1.2, bool_true,  bool_unset, bool_unset, bool_unset, false },
+			{ "markup.formatted.heading.4",     1.1, bool_true,  bool_unset, bool_unset, bool_unset, false },
+			{ "markup.formatted.heading.5",     1.0, bool_true,  bool_unset, bool_unset, bool_unset, false },
+			{ "markup.formatted.heading.6",     1.0, bool_true,  bool_true,  bool_unset, bool_unset, false },
+			{ "markup.formatted.bold",          0,   bool_true,  bool_unset, bool_unset, bool_unset, false },
+			{ "markup.formatted.italic",        0,   bool_unset, bool_true,  bool_unset, bool_unset, false },
+			{ "markup.formatted.strikethrough", 0,   bool_unset, bool_unset, bool_unset, bool_true,  false },
+			{ "markup.formatted.code",          0,   bool_unset, bool_unset, bool_unset, bool_unset, true  },
+			{ "markup.formatted.link",          0,   bool_unset, bool_unset, bool_true,  bool_unset, false },
+		};
+
+		for(auto const& style : formatted)
+		{
+			if(!style.selector.does_match(scope))
+				continue;
+
+			decomposed_style_t extra;
+			if(style.size > 0)
+				extra.font_size = _font_size * style.size; // absolute, so a theme’s own heading size is not applied twice
+			extra.bold          = style.bold;
+			extra.italic        = style.italic;
+			extra.underlined    = style.underlined;
+			extra.strikethrough = style.strikethrough;
+			if(style.tint)
+				extra.background = color_info_t(0.5, 0.5, 0.5, 0.18);
+			base += extra;
+		}
+
 		CTFontPtr font;
 		if(base.font_name != NULL_STR)
 				font.reset(CTFontCreateWithName(cf::wrap(base.font_name), base.font_size, nullptr), CFRelease);

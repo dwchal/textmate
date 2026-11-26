@@ -2,6 +2,10 @@ Title: Release Notes
 
 # Changes
 
+## 2026-11-26 — Opportunistic Labs build
+
+* Formatted Markdown: View → Show Formatted Markdown (⌥⌘E), or the Source/Formatted button in the status bar, shows a Markdown document with headings, bold, italic, strikethrough, inline code and links styled and their markers hidden. It is the same editor and the same text, so you edit in either view and switching never changes the file. Markers reappear while the caret is in that element. Tables, images and diagrams are still shown as source; use the preview (⌃⌥⌘P) for those.
+
 ## 2026-11-23 — Opportunistic Labs build
 
 * Redesigned About window: follows Dark Mode, shows build details with a Copy button, links that work, and an up-to-date Legal page. The Registration tab is gone (TextMate is free software) and the Bundles tab is no longer empty.

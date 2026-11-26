@@ -106,6 +106,18 @@ namespace ng
 		std::string folded_as_string () const;
 		ng::range_t folded_range_at_point (CGPoint point) const;
 
+		// ======================
+		// = Formatted Markdown =
+		// ======================
+
+		// Styles the given ranges and hides the markers among them, except for
+		// elements the selection touches. The text itself is never changed.
+		void set_markup (std::vector<markup_t::span_t> const& spans, ng::ranges_t const& selection);
+		void set_markup_selection (ng::ranges_t const& selection);
+		void clear_markup ();
+		bool has_markup () const                { return _markup_enabled; }
+		std::map<size_t, size_t> const& concealed () const { return _markup.concealed; }
+
 		// =======================
 		// = Gutter view support =
 		// =======================
@@ -161,6 +173,11 @@ namespace ng
 		void refresh_line_at_index (size_t index, bool fullRefresh);
 		void did_fold (size_t from, size_t to);
 
+		void markup_will_replace (size_t from, size_t to);
+		void markup_did_replace (size_t from, size_t to, size_t len);
+		void apply_concealed (std::map<size_t, size_t> const& concealed);
+		std::map<size_t, size_t> concealed_for_selection (ng::ranges_t const& selection) const;
+
 		static int row_y_comp (CGFloat y, row_key_t const& offset, row_key_t const& node)       { return y < offset._height ? -1 : (y == offset._height ? 0 : +1); }
 		static int row_offset_comp (size_t i, row_key_t const& offset, row_key_t const& node)   { return i < offset._length ? -1 : (i == offset._length ? 0 : +1); }
 		static int row_softline_comp (size_t softline, row_key_t const& offset, row_key_t const& node)   { return softline < offset._softlines ? -1 : (softline == offset._softlines ? 0 : +1); }
@@ -169,6 +186,10 @@ namespace ng
 
 		mutable row_tree_t _rows;
 		std::shared_ptr<folds_t> _folds;
+
+		bool                           _markup_enabled = false;
+		markup_t                       _markup;
+		std::vector<markup_t::span_t>  _markup_conceals; // every marker that may be hidden
 
 		ng::buffer_t&      _buffer;
 		ng::callback_t*    _buffer_callback;
@@ -198,6 +219,9 @@ namespace ng
 		std::vector<CGRect> _dirty_rects;
 		size_t _refresh_counter = 0;
 	};
+
+	// The styled ranges and hideable markers of a Markdown document, for layout_t::set_markup.
+	std::vector<markup_t::span_t> markdown_spans (std::string const& text);
 
 } /* ng */
 

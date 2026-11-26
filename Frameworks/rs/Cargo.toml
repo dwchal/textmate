@@ -11,6 +11,8 @@ crate-type = ["staticlib", "rlib"]
 [dependencies]
 # Scope selectors (Frameworks/scope); its C ABI is re-exported through this library.
 scope_rs = { path = "../scope/rust" }
+# Markdown structure for the formatted editing mode (src/markdown.rs).
+pulldown-cmark = { version = "0.12", default-features = false }
 
 [profile.release]
 opt-level = 3

@@ -10,6 +10,7 @@
 #include <text/ctype.h>
 #include <oak/debug.h>
 #include <crash/info.h>
+#include <rs/tm_rs.h>
 
 // ====================
 // = Helper Functions =
@@ -41,7 +42,8 @@ namespace ng
 		struct parser_callback_t : ng::callback_t
 		{
 			parser_callback_t (layout_t& layout) : layout(layout) { }
-			void did_replace (size_t from, size_t to, char const* buf, size_t len) { layout.did_erase(from, to); layout.did_insert(from, from + len); }
+			void will_replace (size_t from, size_t to, char const* buf, size_t len) { layout.markup_will_replace(from, to); }
+			void did_replace (size_t from, size_t to, char const* buf, size_t len)  { layout.markup_did_replace(from, to, len); layout.did_erase(from, to); layout.did_insert(from, from + len); }
 
 		private:
 			layout_t& layout;
@@ -396,7 +398,7 @@ namespace ng
 
 	void layout_t::update_metrics_for_row (row_tree_t::iterator rowIter)
 	{
-		if(rowIter->value.layout(_theme, effective_soft_wrap(rowIter), effective_wrap_column(), *_metrics, CGRectZero, _buffer, rowIter->offset._length))
+		if(rowIter->value.layout(_theme, effective_soft_wrap(rowIter), effective_wrap_column(), *_metrics, CGRectZero, _buffer, rowIter->offset._length, _markup_enabled ? &_markup : nullptr))
 		{
 			bool didUpdateHeight = update_row(rowIter);
 			if(_refresh_counter)
@@ -443,7 +445,206 @@ namespace ng
 			row->value.insert_folded(range.first, range.second - range.first, _buffer, row->offset._length);
 			fullRefresh = update_row(row) || fullRefresh;
 		}
+
+		// Hidden Markdown markers, unless they are inside (or straddle) a fold
+		if(!_markup.concealed.empty())
+		{
+			std::vector< std::pair<size_t, size_t> > hidden;
+			auto it = _markup.concealed.lower_bound(from);
+			if(it != _markup.concealed.begin() && from < std::prev(it)->second)
+				--it;
+			for(; it != _markup.concealed.end() && it->first < to; ++it)
+			{
+				bool inFold = false;
+				for(auto const& fold : foldedRanges)
+					inFold = inFold || (it->first < fold.second && fold.first < it->second);
+				if(!inFold && it->first < it->second && it->second <= _buffer.size())
+					hidden.push_back(*it);
+			}
+
+			for(auto const& range : hidden)
+			{
+				did_erase(range.first, range.second);
+				auto row = row_for_offset(range.first);
+				row->value.insert_concealed(range.first, range.second - range.first, _buffer, row->offset._length);
+				fullRefresh = update_row(row) || fullRefresh;
+			}
+		}
 		return fullRefresh;
+	}
+
+	// ======================
+	// = Formatted Markdown =
+	// ======================
+
+	static bool touches (ng::ranges_t const& selection, size_t from, size_t to)
+	{
+		for(auto const& range : selection)
+		{
+			if(range.min().index <= to && from <= range.max().index)
+				return true;
+		}
+		return false;
+	}
+
+	std::map<size_t, size_t> layout_t::concealed_for_selection (ng::ranges_t const& selection) const
+	{
+		std::map<size_t, size_t> res;
+		size_t last = 0;
+		for(auto const& span : _markup_conceals)
+		{
+			if(span.from < last || span.to > _buffer.size() || touches(selection, span.owner_from, span.owner_to))
+				continue;
+			res.emplace(span.from, span.to);
+			last = span.to;
+		}
+		return res;
+	}
+
+	void layout_t::apply_concealed (std::map<size_t, size_t> const& concealed)
+	{
+		std::vector< std::pair<size_t, size_t> > changed;
+		std::set_symmetric_difference(_markup.concealed.begin(), _markup.concealed.end(), concealed.begin(), concealed.end(), back_inserter(changed));
+		_markup.concealed = concealed;
+		for(auto const& range : changed)
+		{
+			if(range.second <= _buffer.size())
+				did_fold(range.first, range.second);
+		}
+	}
+
+	void layout_t::set_markup (std::vector<markup_t::span_t> const& spans, ng::ranges_t const& selection)
+	{
+		std::vector<markup_t::span_t> styles, conceals;
+		size_t longest = 0;
+		for(auto const& span : spans)
+		{
+			if(span.to <= span.from || _buffer.size() < span.to)
+				continue;
+
+			if(span.kind == 20)
+			{
+				// a marker must stay on one line: rows are laid out per line
+				if(_buffer.convert(span.from).line == _buffer.convert(span.to).line)
+					conceals.push_back(span);
+			}
+			else
+			{
+				styles.push_back(span);
+				longest = std::max(longest, span.to - span.from);
+			}
+		}
+
+		auto const order = [](markup_t::span_t const& lhs, markup_t::span_t const& rhs){ return std::make_tuple(lhs.from, rhs.to, lhs.kind) < std::make_tuple(rhs.from, lhs.to, rhs.kind); };
+		std::sort(styles.begin(), styles.end(), order);
+		std::sort(conceals.begin(), conceals.end(), order);
+
+		// Re-style only what differs from before
+		auto const key = [](markup_t::span_t const& span){ return std::make_tuple(span.from, span.to, span.kind); };
+		std::set< std::tuple<size_t, size_t, unsigned> > before, after;
+		for(auto const& span : _markup.styles) before.insert(key(span));
+		for(auto const& span : styles)         after.insert(key(span));
+		std::vector< std::tuple<size_t, size_t, unsigned> > changed;
+		std::set_symmetric_difference(before.begin(), before.end(), after.begin(), after.end(), back_inserter(changed));
+
+		bool const wasEnabled = _markup_enabled;
+		_markup_enabled       = true;
+		_markup.styles        = styles;
+		_markup.longest_style = std::max(longest, _markup.longest_style);
+		_markup_conceals      = conceals;
+
+		for(auto const& range : changed)
+		{
+			size_t const to = std::min(std::get<1>(range), _buffer.size());
+			if(std::get<0>(range) < to)
+				did_update_scopes(_buffer.begin(_buffer.convert(std::get<0>(range)).line), to);
+		}
+		_markup.longest_style = longest;
+
+		if(!wasEnabled && changed.empty() && _buffer.size())
+			did_update_scopes(0, _buffer.size());
+
+		apply_concealed(concealed_for_selection(selection));
+	}
+
+	void layout_t::set_markup_selection (ng::ranges_t const& selection)
+	{
+		if(_markup_enabled)
+			apply_concealed(concealed_for_selection(selection));
+	}
+
+	void layout_t::clear_markup ()
+	{
+		if(!_markup_enabled)
+			return;
+
+		apply_concealed({ });
+		std::vector<markup_t::span_t> styles;
+		styles.swap(_markup.styles);
+		_markup_conceals.clear();
+		_markup_enabled = false;
+
+		for(auto const& span : styles)
+		{
+			if(span.from < span.to && span.to <= _buffer.size())
+				did_update_scopes(_buffer.begin(_buffer.convert(span.from).line), span.to);
+		}
+		_markup.longest_style = 0;
+	}
+
+	// The ranges are byte offsets, so they must follow every edit. What an edit
+	// touches is shown and unstyled until the document has been analysed again.
+	void layout_t::markup_will_replace (size_t from, size_t to)
+	{
+		if(!_markup_enabled)
+			return;
+
+		std::map<size_t, size_t> concealed = _markup.concealed;
+		for(auto it = concealed.begin(); it != concealed.end(); )
+		{
+			if(it->first <= to && from <= it->second)
+					it = concealed.erase(it);
+			else	++it;
+		}
+
+		if(concealed.size() != _markup.concealed.size())
+			apply_concealed(concealed);
+
+		auto const intersects = [=](markup_t::span_t const& span){ return span.from <= to && from <= span.to; };
+		for(auto const& span : _markup.styles)
+		{
+			if(intersects(span) && span.from < span.to && span.to <= _buffer.size())
+				did_update_scopes(_buffer.begin(_buffer.convert(span.from).line), span.to);
+		}
+		_markup.styles.erase(std::remove_if(_markup.styles.begin(), _markup.styles.end(), intersects), _markup.styles.end());
+		_markup_conceals.erase(std::remove_if(_markup_conceals.begin(), _markup_conceals.end(), [=](markup_t::span_t const& span){ return intersects(span) || (span.owner_from <= to && from <= span.owner_to); }), _markup_conceals.end());
+	}
+
+	void layout_t::markup_did_replace (size_t from, size_t to, size_t len)
+	{
+		if(!_markup_enabled || len == to - from)
+			return;
+
+		auto const shift = [=](size_t& offset){ if(to <= offset) offset = offset - (to - from) + len; };
+
+		for(auto& span : _markup.styles)
+		{
+			shift(span.from); shift(span.to);
+		}
+
+		for(auto& span : _markup_conceals)
+		{
+			shift(span.from); shift(span.to); shift(span.owner_from); shift(span.owner_to);
+		}
+
+		std::map<size_t, size_t> concealed;
+		for(auto pair : _markup.concealed)
+		{
+			size_t first = pair.first, second = pair.second;
+			shift(first); shift(second);
+			concealed.emplace(first, second);
+		}
+		_markup.concealed.swap(concealed);
 	}
 
 	// ================
@@ -958,6 +1159,15 @@ namespace ng
 		return _rows.to_s([&buffer](row_tree_t::value_type info){
 			return text::format("y: %.1f-%.1f, w: %1.f, bytes: %zu-%zu\n» %s\n%s", info.offset._height, info.offset._height + info.key._height, info.key._width, info.offset._length, info.offset._length + info.key._length, buffer.substr(info.offset._length, info.key._length).c_str(), ng::to_s(info.value).c_str());
 		});
+	}
+
+	std::vector<markup_t::span_t> markdown_spans (std::string const& text)
+	{
+		std::vector<markup_t::span_t> res;
+		tm_markdown_spans(text.data(), text.size(), [](void* ctx, unsigned kind, size_t from, size_t to, size_t ownerFrom, size_t ownerTo){
+			static_cast<std::vector<markup_t::span_t>*>(ctx)->push_back({ from, to, kind, ownerFrom, ownerTo });
+		}, &res);
+		return res;
 	}
 
 } /* ng */

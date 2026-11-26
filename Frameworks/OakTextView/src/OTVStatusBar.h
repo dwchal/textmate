@@ -10,6 +10,8 @@
 @property (nonatomic) NSString* symbolName;
 @property (nonatomic) NSString* fileType; // This will update grammarName
 @property (nonatomic, getter = isRecordingMacro) BOOL recordingMacro;
+@property (nonatomic) BOOL showsFormattedMarkdownButton; // only for Markdown documents
+@property (nonatomic) BOOL formattedMarkdown;
 @property (nonatomic) BOOL softTabs;
 @property (nonatomic) NSUInteger tabSize;
 

@@ -95,7 +95,7 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 
 		self.document = [OakDocument documentWithString:@"" fileType:@"text.plain" customName:@"placeholder"];
 
-		self.observedKeys = @[ @"selectionString", @"symbol", @"recordingMacro", @"themeUUID" ];
+		self.observedKeys = @[ @"selectionString", @"symbol", @"recordingMacro", @"themeUUID", @"formattedMarkdown" ];
 		for(NSString* keyPath in self.observedKeys)
 			[_textView addObserver:self forKeyPath:keyPath options:NSKeyValueObservingOptionInitial context:NULL];
 	}
@@ -264,9 +264,18 @@ static NSString* const kFoldingsColumnIdentifier  = @"foldings";
 	{
 		_statusBar.recordingMacro = _textView.isRecordingMacro;
 	}
+	else if([aKeyPath isEqualToString:@"formattedMarkdown"])
+	{
+		_statusBar.showsFormattedMarkdownButton = _textView.isMarkdownDocument;
+		_statusBar.formattedMarkdown            = _textView.isFormattedMarkdown;
+	}
 	else if([aKeyPath isEqualToString:@"fileType"])
 	{
 		_statusBar.fileType = self.document.fileType;
+		if(_textView.document == self.document)
+			[_textView fileTypeDidChange];
+		_statusBar.showsFormattedMarkdownButton = _textView.isMarkdownDocument;
+		_statusBar.formattedMarkdown            = _textView.isFormattedMarkdown;
 	}
 	else if([aKeyPath isEqualToString:@"tabSize"])
 	{

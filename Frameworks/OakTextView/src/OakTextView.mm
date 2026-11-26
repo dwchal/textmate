@@ -54,6 +54,7 @@ NSString* const kUserDefaultsWrapColumnPresetsKey  = @"wrapColumnPresets";
 NSString* const kUserDefaultsFontSmoothingKey      = @"fontSmoothing";
 NSString* const kUserDefaultsDisableTypingPairsKey = @"disableTypingPairs";
 NSString* const kUserDefaultsScrollPastEndKey      = @"scrollPastEnd";
+NSString* const kUserDefaultsFormattedMarkdownKey  = @"formattedMarkdown";
 
 @interface OakAccessibleLink : NSObject
 - (id)initWithTextView:(OakTextView*)textView range:(ng::range_t)range title:(NSString*)title URL:(NSString*)URL frame:(NSRect)frame;
@@ -246,6 +247,12 @@ struct document_view_t : ng::buffer_api_t
 		settings_t const settings = settings_for_path(logical_path(), file_type() + " " + scopeAttributes, path::parent(path()));
 		invisibles_map = settings.get(kSettingsInvisiblesMapKey, "");
 	}
+
+	// Formatted Markdown: styled text with the markers hidden, see ng::layout_t::set_markup
+	bool formatted () const                       { return _layout->has_markup(); }
+	void refresh_markup ()                        { _layout->set_markup(ng::markdown_spans(substr(0, size())), ranges()); }
+	void refresh_markup_selection ()              { _layout->set_markup_selection(ranges()); }
+	void set_formatted (bool flag)                { if(flag) refresh_markup(); else _layout->clear_markup(); }
 
 	bool begin_change_grouping ()                 { return [_document_editor beginChangeGrouping]; }
 	bool end_change_grouping ()                   { return [_document_editor endChangeGrouping]; }
@@ -617,6 +624,14 @@ struct refresh_helper_t
 					[_self updateSymbol];
 				}
 
+				if(documentView->formatted())
+				{
+					if(_revision != documentView->revision())
+						documentView->refresh_markup();
+					else if(_selection != documentView->ranges())
+						documentView->refresh_markup_selection();
+				}
+
 				auto damagedRects = documentView->end_refresh_cycle(merge(documentView->ranges(), [_self markedRanges]), [_self visibleRect], [_self liveSearchRanges]);
 
 				NSRect r = [[_self enclosingScrollView] documentVisibleRect];
@@ -902,6 +917,11 @@ static std::string shell_quote (std::vector<std::string> paths)
 
 		BOOL hasFocus = (self.keyState & (OakViewViewIsFirstResponderMask|OakViewWindowIsKeyMask|OakViewApplicationIsActiveMask)) == (OakViewViewIsFirstResponderMask|OakViewWindowIsKeyMask|OakViewApplicationIsActiveMask);
 		documentView->set_draw_as_key(hasFocus);
+
+		[self willChangeValueForKey:@"formattedMarkdown"];
+		if(self.isMarkdownDocument && [NSUserDefaults.standardUserDefaults boolForKey:kUserDefaultsFormattedMarkdownKey])
+			documentView->set_formatted(true);
+		[self didChangeValueForKey:@"formattedMarkdown"];
 
 		struct buffer_refresh_callback_t : ng::callback_t
 		{
@@ -3108,6 +3128,11 @@ static char const* kOakMenuItemTitle = "OakMenuItemTitle";
 		[aMenuItem setTitle:self.showInvisibles ? @"Hide Invisible Characters" : @"Show Invisible Characters"];
 	else if([aMenuItem action] == @selector(toggleSoftWrap:))
 		[aMenuItem setTitle:self.softWrap ? @"Disable Soft Wrap" : @"Enable Soft Wrap"];
+	else if([aMenuItem action] == @selector(toggleFormattedMarkdown:))
+	{
+		[aMenuItem setTitle:(documentView && documentView->formatted()) ? @"Show Markdown Source" : @"Show Formatted Markdown"];
+		return documentView && self.isMarkdownDocument;
+	}
 	else if([aMenuItem action] == @selector(toggleScrollPastEnd:))
 		[aMenuItem setTitle:self.scrollPastEnd ? @"Disallow Scroll Past End" : @"Allow Scroll Past End"];
 	else if([aMenuItem action] == @selector(toggleShowWrapColumn:))
@@ -3389,6 +3414,59 @@ static char const* kOakMenuItemTitle = "OakMenuItemTitle";
 - (IBAction)toggleSoftWrap:(id)sender
 {
 	self.softWrap = !self.softWrap;
+}
+
+// ======================
+// = Formatted Markdown =
+// ======================
+
+- (BOOL)isMarkdownDocument
+{
+	NSString* fileType = _document.fileType;
+	return [fileType isEqualToString:@"text.html.markdown"] || [fileType hasPrefix:@"text.html.markdown."];
+}
+
+- (BOOL)isFormattedMarkdown
+{
+	return documentView && documentView->formatted();
+}
+
+- (void)fileTypeDidChange
+{
+	if(!documentView)
+		return;
+
+	BOOL const flag = self.isMarkdownDocument && [NSUserDefaults.standardUserDefaults boolForKey:kUserDefaultsFormattedMarkdownKey];
+	if(flag == documentView->formatted())
+		return;
+
+	[self willChangeValueForKey:@"formattedMarkdown"];
+	{
+		AUTO_REFRESH;
+		documentView->set_formatted(flag);
+	}
+	[self didChangeValueForKey:@"formattedMarkdown"];
+	[self setNeedsDisplay:YES];
+}
+
+// Both views edit the same text: formatted only changes how it is drawn.
+- (IBAction)toggleFormattedMarkdown:(id)sender
+{
+	if(!documentView || !self.isMarkdownDocument)
+		return;
+
+	BOOL const flag = !documentView->formatted();
+	[NSUserDefaults.standardUserDefaults setBool:flag forKey:kUserDefaultsFormattedMarkdownKey];
+
+	[self willChangeValueForKey:@"formattedMarkdown"];
+	{
+		AUTO_REFRESH;
+		documentView->set_formatted(flag);
+	}
+	[self didChangeValueForKey:@"formattedMarkdown"];
+	[self setNeedsDisplay:YES];
+	self.needsEnsureSelectionIsInVisibleArea = YES;
+	[self ensureSelectionIsInVisibleArea:self];
 }
 
 - (IBAction)toggleShowWrapColumn:(id)sender

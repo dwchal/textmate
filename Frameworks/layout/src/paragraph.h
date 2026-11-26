@@ -20,15 +20,39 @@ namespace ng
 
 	struct line_t;
 
+	// Formatted Markdown: styled ranges and hidden markers laid over the buffer’s
+	// text (see Frameworks/rs/src/markdown.rs for where the ranges come from).
+	struct markup_t
+	{
+		struct span_t
+		{
+			size_t from, to;
+			unsigned kind;             // kTMMarkdown… from <rs/tm_rs.h>
+			size_t owner_from, owner_to;
+		};
+
+		bool empty () const { return styles.empty() && concealed.empty(); }
+
+		// Adds the scopes for the styled ranges in [from, to) to ‘scopes’ (keys are relative to ‘from’).
+		void apply (std::map<size_t, scope::scope_t>& scopes, size_t from, size_t to) const;
+		// Size of the largest heading starting in [from, to) relative to body text, 1 if none.
+		double heading_scale (size_t from, size_t to) const;
+
+		std::vector<span_t> styles;         // ordered by ‘from’
+		size_t longest_style = 0;
+		std::map<size_t, size_t> concealed; // from → to, the markers currently hidden
+	};
+
 	struct paragraph_t
 	{
 		size_t length () const;
 
 		void insert (size_t pos, size_t len, ng::buffer_t const& buffer, size_t bufferOffset);
 		void insert_folded (size_t pos, size_t len, ng::buffer_t const& buffer, size_t bufferOffset);
+		void insert_concealed (size_t pos, size_t len, ng::buffer_t const& buffer, size_t bufferOffset);
 		void erase (size_t from, size_t to, ng::buffer_t const& buffer, size_t bufferOffset);
 		void did_update_scopes (size_t from, size_t to, ng::buffer_t const& buffer, size_t bufferOffset);
-		bool layout (theme_ptr const& theme, bool softWrap, size_t wrapColumn, ct::metrics_t const& metrics, CGRect visibleRect, ng::buffer_t const& buffer, size_t bufferOffset);
+		bool layout (theme_ptr const& theme, bool softWrap, size_t wrapColumn, ct::metrics_t const& metrics, CGRect visibleRect, ng::buffer_t const& buffer, size_t bufferOffset, markup_t const* markup = nullptr);
 
 		void draw_background (theme_ptr const& theme, ct::metrics_t const& metrics, ng::context_t const& context, bool isFlipped, CGRect visibleRect, CGColorRef backgroundColor, ng::buffer_t const& buffer, size_t bufferOffset, CGPoint anchor) const;
 		void draw_foreground (theme_ptr const& theme, ct::metrics_t const& metrics, ng::context_t const& context, bool isFlipped, CGRect visibleRect, ng::buffer_t const& buffer, size_t bufferOffset, ng::ranges_t const& selection, CGPoint anchor) const;
@@ -59,7 +83,7 @@ namespace ng
 		bool structural_integrity () const { return true; }
 
 	private:
-		enum node_type_t { kNodeTypeText, kNodeTypeUnprintable, kNodeTypeFolding, kNodeTypeSoftBreak, kNodeTypeNewline };
+		enum node_type_t { kNodeTypeText, kNodeTypeUnprintable, kNodeTypeFolding, kNodeTypeSoftBreak, kNodeTypeNewline, kNodeTypeConcealed };
 
 		struct node_t
 		{
@@ -69,7 +93,7 @@ namespace ng
 			void erase (size_t from, size_t to);
 			void did_update_scopes (size_t from, size_t to);
 
-			void layout (CGFloat x, size_t tabSize, theme_ptr const& theme, bool softWrap, size_t wrapColumn, ct::metrics_t const& metrics, ng::buffer_t const& buffer, size_t bufferOffset, std::string const& fillStr);
+			void layout (CGFloat x, size_t tabSize, theme_ptr const& theme, bool softWrap, size_t wrapColumn, ct::metrics_t const& metrics, ng::buffer_t const& buffer, size_t bufferOffset, std::string const& fillStr, markup_t const* markup);
 			void reset_font_metrics (ct::metrics_t const& metrics);
 			void draw_background (theme_ptr const& theme, ng::context_t const& context, bool isFlipped, CGRect visibleRect, CGColorRef backgroundColor, ng::buffer_t const& buffer, size_t bufferOffset, CGPoint anchor, CGFloat lineHeight) const;
 			void draw_foreground (theme_ptr const& theme, ng::context_t const& context, bool isFlipped, CGRect visibleRect, ng::buffer_t const& buffer, size_t bufferOffset, std::vector< std::pair<size_t, size_t> > const& misspelled, CGPoint anchor, CGFloat baseline) const;

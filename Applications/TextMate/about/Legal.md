@@ -24,6 +24,10 @@ Key-value store backed by SQLite. Copyright Colin Young. MIT license. <https://g
 
 Parts of TextMate are written in Rust and include its standard library. Copyrights are retained by its contributors. Licensed under the [Apache License, Version 2.0](https://github.com/rust-lang/rust/blob/master/LICENSE-APACHE) or the [MIT license](https://github.com/rust-lang/rust/blob/master/LICENSE-MIT), at your option. <https://www.rust-lang.org>
 
+### pulldown-cmark
+
+Markdown parser used by the formatted Markdown view, with its dependencies bitflags, memchr and unicase. Copyright Google LLC, Raph Levien, Marcus Klaas de Vries and the respective contributors. [MIT license](https://github.com/pulldown-cmark/pulldown-cmark/blob/master/LICENSE) (bitflags and unicase: MIT or Apache License 2.0; memchr: MIT or Unlicense). <https://github.com/pulldown-cmark/pulldown-cmark>
+
 ## Downloaded on first use
 
 ### Mermaid

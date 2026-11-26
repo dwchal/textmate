@@ -1,5 +1,5 @@
 target "${dirname}" {
-	require OakFoundation buffer bundles cf crash io ns plist regexp selection text theme
+	require OakFoundation buffer bundles cf crash io ns plist regexp rs selection text theme
 	headers src/{layout,paragraph,ct}.h
 	sources src/*.cc
 	tests tests/t_*.cc
